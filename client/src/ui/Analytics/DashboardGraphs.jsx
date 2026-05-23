@@ -10,7 +10,7 @@ import TopProviders from "./TopProviders";
 import DashboardMap from "./DashboardMap";
 import Card from "../common/Card";
 import Skeleton from "../common/Skeleton";
-import { useRequestsOverTime, useRevenueByService, useTopProviders, useStatusDistribution } from "../../hooks/useApi";
+import { useRequestsOverTime, useRevenueByService, useTopProviders, useStatusDistribution, useAnalyticsStats } from "../../hooks/useApi";
 
 function ChartCard({ title, className, children }) {
   return (
@@ -29,6 +29,7 @@ function DashboardGraphs({ dateRange }) {
   const { data: revenueData, loading: loadingRevenue } = useRevenueByService(dateRange);
   const { data: topProviders, loading: loadingProviders } = useTopProviders();
   const { data: statusDist } = useStatusDistribution(dateRange);
+  const { data: stats } = useAnalyticsStats(dateRange);
 
   const linesData = (requestsData || []).map((r) => ({
     name: r.month,
@@ -75,7 +76,7 @@ function DashboardGraphs({ dateRange }) {
         </ChartCard>
 
         <ChartCard title="Patient Satisfaction">
-          <PatientSatisfactionLevel satisfaction={85} />
+          <PatientSatisfactionLevel satisfaction={stats?.patientSatisfaction?.value || 0} />
         </ChartCard>
       </div>
 

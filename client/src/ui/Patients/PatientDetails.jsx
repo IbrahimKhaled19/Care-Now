@@ -164,7 +164,7 @@ function PatientDetails() {
           {loadingMed ? (
             <Skeleton className="h-32 w-full" />
           ) : (medicalInfo || []).length === 0 ? (
-            <p className="text-sm text-gray-400">No medical info on file.</p>
+            <p className="text-sm text-gray-500">No medical info on file.</p>
           ) : (
             <div className="space-y-4">
               {(medicalInfo || []).map((info) => {

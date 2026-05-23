@@ -64,6 +64,7 @@ router.get("/stats", requireAuth, async (req, res, next) => {
       activeProviders: { value: parseInt(providers.rows[0].count), change: "+0%" },
       completionRate: { value: `${completionRate}%`, change: rateChangeStr },
       avgResponseTime: { value: "28 min", change: "-3 min" }, // Placeholder — needs response time tracking
+      patientSatisfaction: { value: parseFloat(completionRate), change: rateChangeStr },
     });
   } catch (err) {
     next(err);

@@ -10,7 +10,6 @@ import {
 import { Download } from "lucide-react";
 import StatusBadge from "../common/StatusBadge";
 import BaseTable from "../common/BaseTable";
-import SearchFilterBar from "../common/SearchFilterBar";
 import Card from "../common/Card";
 import Button from "../common/Button";
 import Skeleton from "../common/Skeleton";
@@ -144,11 +143,8 @@ function WalletsView() {
       </div>
 
       <div className="mb-4">
-        <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="mb-4">
           <h3 className="text-sm font-semibold text-gray-700">User Wallets</h3>
-          <div className="relative w-64">
-            <SearchFilterBar searchPlaceholder="Search wallets..." />
-          </div>
         </div>
         <BaseTable
           header={header}

@@ -165,7 +165,7 @@ function ProviderDetails() {
           {loadingServices ? (
             <Skeleton className="h-32 w-full" />
           ) : (services || []).length === 0 ? (
-            <p className="text-sm text-gray-400">No services listed.</p>
+            <p className="text-sm text-gray-500">No services listed.</p>
           ) : (
             <div className="space-y-3">
               {(services || []).map((service, idx) => {
