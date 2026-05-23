@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { NavLink } from "react-router-dom";
 import { UserButton, useUser } from "@clerk/clerk-react";
+
+const NotificationInbox = lazy(() => import("../../components/NotificationInbox"));
+
 import {
   LayoutDashboard,
   ClipboardList,
@@ -41,7 +44,9 @@ function SideBar() {
 
   useEffect(() => {
     if (!mobileOpen) return;
-    const handleEscape = (e) => { if (e.key === "Escape") setMobileOpen(false); };
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [mobileOpen]);
@@ -99,7 +104,10 @@ function SideBar() {
           </div>
 
           {/* Navigation */}
-          <nav aria-label="Main navigation" className="flex-1 px-3 py-4 overflow-y-auto">
+          <nav
+            aria-label="Main navigation"
+            className="flex-1 px-3 py-4 overflow-y-auto"
+          >
             <ul className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -127,6 +135,13 @@ function SideBar() {
 
           {/* Footer */}
           <div className="px-3 py-4 border-t border-gray-100">
+            {/* Notifications */}
+            <div className={collapsed ? "flex justify-center mb-2" : "px-3 py-2 mb-2"}>
+              <Suspense fallback={null}>
+                <NotificationInbox />
+              </Suspense>
+            </div>
+
             {/* User Profile */}
             {!collapsed && user && (
               <div className="flex items-center gap-3 px-3 py-2.5 mb-2">

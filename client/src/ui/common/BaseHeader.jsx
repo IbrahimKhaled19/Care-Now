@@ -1,12 +1,7 @@
-import { motion } from "motion/react";
-
 function BaseHeader({ title, subtitle, actions, className = "" }) {
   return (
-    <motion.header
+    <header
       className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${className}`}
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
     >
       <div>
         <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
@@ -17,7 +12,7 @@ function BaseHeader({ title, subtitle, actions, className = "" }) {
       {actions && (
         <div className="flex items-center gap-3">{actions}</div>
       )}
-    </motion.header>
+    </header>
   );
 }
 

@@ -15,7 +15,7 @@ function UnauthorizedPage() {
         <p className="text-sm text-gray-500 mb-6">
           You don't have permission to access the admin dashboard. Only admin and moderator accounts can view this area.
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           Contact your administrator if you believe this is an error.
         </p>
       </div>

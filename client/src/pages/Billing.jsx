@@ -16,15 +16,15 @@ function Billing() {
         subtitle="Manage financial transactions, revenue reports, and payment methods"
       />
 
-      <div className="mt-6 mb-5">
-        <nav aria-label="Billing tabs" className="flex items-center gap-1 border-b border-gray-100 overflow-x-auto">
+      <div className="mt-6 mb-5 border-b border-gray-100">
+        <nav aria-label="Billing tabs" className="flex gap-1 overflow-x-auto">
           {tabs.map((tab) => (
             <NavLink
               key={tab.id}
               to={tab.path}
               end={tab.id === "transactions"}
               className={({ isActive }) =>
-                `relative px-4 py-2.5 text-sm font-medium transition-colors duration-150 rounded-t-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-1 ${
+                `px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 relative cursor-pointer flex items-center gap-2 rounded-t-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-1 ${
                   isActive
                     ? "text-teal-700"
                     : "text-gray-500 hover:text-gray-700"
