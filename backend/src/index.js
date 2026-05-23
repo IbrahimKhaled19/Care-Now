@@ -24,16 +24,19 @@ const PORT = process.env.PORT || 3001;
 // Helmet: CSP, HSTS, X-Frame-Options, etc.
 app.use(helmet());
 
-// CORS: restrict to frontend origin
+// CORS: restrict to frontend origin (trim trailing slash for safety)
+const allowedOrigin = (
+  process.env.FRONTEND_URL || "http://localhost:5173"
+).replace(/\/+$/, "");
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: allowedOrigin,
     credentials: true,
-  })
+  }),
 );
 
 // Rate limiting: disabled in development
-if (process.env.NODE_ENV === "production") {
+if (process.env.MODE === "production") {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -68,7 +71,11 @@ app.get("/api/health", (req, res) => {
 });
 
 // Clerk webhooks (raw body needed for signature verification)
-app.use("/api/clerk/webhook", express.raw({ type: "application/json" }), clerkWebhookRouter);
+app.use(
+  "/api/clerk/webhook",
+  express.raw({ type: "application/json" }),
+  clerkWebhookRouter,
+);
 
 // All other routes (auth enforced per-route)
 app.use("/api/users", usersRouter);

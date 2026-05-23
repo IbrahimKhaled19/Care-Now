@@ -17,7 +17,7 @@ function Billing() {
       />
 
       <div className="mt-6 mb-5">
-        <nav aria-label="Billing tabs" className="flex items-center gap-1 border-b border-gray-100">
+        <nav aria-label="Billing tabs" className="flex items-center gap-1 border-b border-gray-100 overflow-x-auto">
           {tabs.map((tab) => (
             <NavLink
               key={tab.id}

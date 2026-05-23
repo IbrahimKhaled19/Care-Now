@@ -51,7 +51,7 @@ function SideBar() {
       {/* Mobile Toggle */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-teal-700 md:hidden cursor-pointer"
+        className="fixed top-4 right-4 left-auto z-50 p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-teal-700 md:hidden cursor-pointer"
         aria-label={mobileOpen ? "Close menu" : "Open menu"}
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}

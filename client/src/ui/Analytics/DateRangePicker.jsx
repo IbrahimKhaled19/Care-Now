@@ -44,8 +44,8 @@ export default function DateRangePicker({ value, onChange }) {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center bg-gray-50 rounded-lg p-0.5">
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center bg-gray-50 rounded-lg p-0.5 shrink-0">
         {presets.map((preset) => (
           <button
             key={preset.label}
@@ -74,7 +74,7 @@ export default function DateRangePicker({ value, onChange }) {
       </button>
 
       {showCustom && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <input
             type="date"
             value={customStart}

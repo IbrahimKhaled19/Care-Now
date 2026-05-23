@@ -1,7 +1,7 @@
 const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
   return (
     <div className="border-b border-gray-100">
-      <nav aria-label="Tabs" className="flex gap-1">
+      <nav aria-label="Tabs" className="flex gap-1 overflow-x-auto">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -9,7 +9,7 @@ const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
               key={tab.id}
               aria-current={isActive ? "true" : undefined}
               onClick={() => onTabChange(tab.id)}
-              className={`px-4 py-3 text-sm font-medium transition-colors duration-150 relative cursor-pointer flex items-center gap-2 rounded-t-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-1 ${
+              className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 relative cursor-pointer flex items-center gap-2 rounded-t-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-1 ${
                 isActive
                   ? "text-teal-700"
                   : "text-gray-500 hover:text-gray-700"

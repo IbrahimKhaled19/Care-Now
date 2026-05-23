@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 function BaseHeader({ title, subtitle, actions, className = "" }) {
   return (
     <motion.header
-      className={`flex items-start justify-between ${className}`}
+      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${className}`}
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}

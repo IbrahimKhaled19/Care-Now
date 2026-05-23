@@ -1,6 +1,6 @@
-import { SignIn } from "@clerk/clerk-react";
+import { SignUp } from "@clerk/clerk-react";
 
-export default function Login() {
+export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-cream-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md flex items-center justify-center flex-col">
@@ -9,12 +9,10 @@ export default function Login() {
             <span className="text-white text-sm font-bold">C</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Care Now</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Sign in to your admin dashboard
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Create your account</p>
         </div>
 
-        <SignIn
+        <SignUp
           routing="hash"
           appearance={{
             elements: {

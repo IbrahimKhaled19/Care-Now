@@ -1,11 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
+import { ClerkProvider } from "@clerk/clerk-react";
 import { ToastProvider } from "./ui/common/Toast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ApiProvider from "./components/ApiProvider";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import SignUpPage from "./pages/SignUp";
 import RequestDetails from "./ui/Requests/RequestDetails";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./pages/AppLayout";
@@ -37,8 +38,7 @@ function App() {
           <Routes>
             <Route index element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
-            <Route path="/sign-up/*" element={<SignUp routing="path" path="/sign-up" />} />
+            <Route path="/sign-up" element={<SignUpPage />} />
             <Route
               element={
                 <ProtectedRoute>

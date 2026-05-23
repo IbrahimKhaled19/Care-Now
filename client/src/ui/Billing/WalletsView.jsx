@@ -92,7 +92,7 @@ function WalletsView() {
 
   return (
     <div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {summaryCards.map((card, idx) => (
           <Card key={card.label} className={idx === 0 ? "bg-teal-50 border-teal-100" : ""}>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{card.label}</p>

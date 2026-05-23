@@ -20,7 +20,7 @@ function DashboardHeader({ dateRange, onDateRangeChange }) {
 
   return (
     <motion.header
-      className="flex items-start justify-between mb-8"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { headerContent } from "../../data/content";
 import Button from "../common/Button";
 
@@ -38,9 +39,28 @@ function Header() {
         </nav>
 
         {/* Desktop CTA */}
-        <Button className="px-5 py-2.5 hidden lg:block text-sm">
-          Download
-        </Button>
+        <div className="hidden lg:flex items-center gap-3">
+          <SignedOut>
+            <Link to="/login">
+              <Button variant="ghost" className="px-4 py-2 text-sm">
+                Sign In
+              </Button>
+            </Link>
+            <Link to="/sign-up">
+              <Button className="px-4 py-2 text-sm">
+                Sign Up
+              </Button>
+            </Link>
+          </SignedOut>
+          <SignedIn>
+            <Link to="/dashboard">
+              <Button variant="ghost" className="px-4 py-2 text-sm">
+                Dashboard
+              </Button>
+            </Link>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+        </div>
 
         {/* Mobile Menu Toggle */}
         <button
@@ -76,9 +96,27 @@ function Header() {
               ))}
             </ul>
           </nav>
-          <Button className="w-full mt-4 py-3 text-base">
-            Download
-          </Button>
+          <div className="flex flex-col gap-2 mt-4">
+            <SignedOut>
+              <Link to="/login" onClick={() => setMenuOpen(false)}>
+                <Button variant="ghost" className="w-full py-3 text-base">
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/sign-up" onClick={() => setMenuOpen(false)}>
+                <Button className="w-full py-3 text-base">
+                  Sign Up
+                </Button>
+              </Link>
+            </SignedOut>
+            <SignedIn>
+              <Link to="/dashboard" onClick={() => setMenuOpen(false)}>
+                <Button className="w-full py-3 text-base">
+                  Dashboard
+                </Button>
+              </Link>
+            </SignedIn>
+          </div>
         </motion.div>
       )}
     </header>

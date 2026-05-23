@@ -30,7 +30,7 @@ function DashboardStatistics({ dateRange }) {
           <Skeleton className="h-3 w-24 mb-2" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Skeleton className="h-16" />
           <Skeleton className="h-16" />
           <Skeleton className="h-16" />
@@ -78,7 +78,7 @@ function DashboardStatistics({ dateRange }) {
       </motion.div>
 
       {/* Secondary metrics strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {secondaryStats.map((stat, idx) => (
           <motion.div
             key={stat.title}
