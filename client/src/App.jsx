@@ -1,0 +1,74 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { ClerkProvider, SignIn, SignUp } from "@clerk/clerk-react";
+import { ToastProvider } from "./ui/common/Toast";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ApiProvider from "./components/ApiProvider";
+import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import RequestDetails from "./ui/Requests/RequestDetails";
+import NotFound from "./pages/NotFound";
+import AppLayout from "./pages/AppLayout";
+import Analytics from "./pages/Analytics";
+import Requests from "./pages/Requests";
+import Reports from "./pages/Reports";
+import Providers from "./pages/Providers";
+import Billing from "./pages/Billing";
+import TransactionsView from "./ui/Billing/TransactionsView";
+import WithdrawalsView from "./ui/Billing/WithdrawalsView";
+import WalletsView from "./ui/Billing/WalletsView";
+import Patient from "./pages/Patient.jsx";
+import AdminsManagement from "./pages/AdminsManagement.jsx";
+import ProviderDetails from "./ui/Providers/ProviderDetails.jsx";
+import PatientDetails from "./ui/Patients/PatientDetails.jsx";
+
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in .env");
+}
+
+function App() {
+  return (
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <ApiProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route index element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
+            <Route path="/sign-up/*" element={<SignUp routing="path" path="/sign-up" />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate replace to="dashboard" />} />
+              <Route path="dashboard" element={<Analytics />} />
+              <Route path="requests" element={<Requests />} />
+              <Route path="requests/:id" element={<RequestDetails />} />
+              <Route path="admins" element={<AdminsManagement />} />
+              <Route path="report" element={<Reports />} />
+              <Route path="providers" element={<Providers />} />
+              <Route path="providers/:id" element={<ProviderDetails />} />
+              <Route path="billing" element={<Billing />}>
+                <Route index element={<TransactionsView />} />
+                <Route path="withdrawals" element={<WithdrawalsView />} />
+                <Route path="wallet" element={<WalletsView />} />
+              </Route>
+              <Route path="patients" element={<Patient />} />
+              <Route path="patients/:id" element={<PatientDetails />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
+      </ApiProvider>
+    </ClerkProvider>
+  );
+}
+
+export default App;
