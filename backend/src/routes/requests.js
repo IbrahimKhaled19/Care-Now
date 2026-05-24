@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require("../config/db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
+const { trigger } = require("../lib/novu");
 
 // GET / — list all requests with optional filters
 router.get("/", requireAuth, async (req, res, next) => {
@@ -91,7 +92,28 @@ router.post("/", requireAuth, requireRole("admin"), validate("createRequest"), a
         : [patient_id, provider_id, service, status || "waiting"]
     );
 
-    res.status(201).json(rows[0]);
+    const request = rows[0];
+
+    // Notify provider if assigned
+    if (provider_id) {
+      const provider = await db.query(
+        "SELECT clerk_user_id, full_name FROM users WHERE id = $1",
+        [provider_id]
+      );
+      if (provider.rows.length > 0) {
+        const patient = patient_id
+          ? await db.query("SELECT full_name FROM users WHERE id = $1", [patient_id])
+          : null;
+        trigger("new-request", provider.rows[0].clerk_user_id, {
+          providerName: provider.rows[0].full_name,
+          patientName: patient?.rows[0]?.full_name || "A patient",
+          service,
+          requestId: request.id,
+        });
+      }
+    }
+
+    res.status(201).json(request);
   } catch (err) {
     next(err);
   }
@@ -118,7 +140,25 @@ router.put("/:id", requireAuth, requireRole("admin"), validate("updateRequest"),
       return res.status(404).json({ error: "Request not found" });
     }
 
-    res.json(rows[0]);
+    const updated = rows[0];
+
+    // Notify provider on status change
+    if (status && updated.provider_id) {
+      const provider = await db.query(
+        "SELECT clerk_user_id, full_name FROM users WHERE id = $1",
+        [updated.provider_id]
+      );
+      if (provider.rows.length > 0) {
+        trigger("request-status-changed", provider.rows[0].clerk_user_id, {
+          providerName: provider.rows[0].full_name,
+          service: updated.service,
+          status,
+          requestId: updated.id,
+        });
+      }
+    }
+
+    res.json(updated);
   } catch (err) {
     next(err);
   }

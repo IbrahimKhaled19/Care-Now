@@ -140,11 +140,11 @@ function validate(schemaName) {
       return res.status(500).json({ error: `Unknown schema: ${schemaName}` });
     }
 
-    // Sanitize: convert empty strings to null for optional fields
+    // Sanitize: convert empty strings to undefined for optional fields
     const body = { ...req.body };
     for (const [key, value] of Object.entries(body)) {
-      if (value === "" || value === undefined) {
-        body[key] = null;
+      if (value === "") {
+        delete body[key];
       }
     }
 
