@@ -56,13 +56,15 @@ function App() {
                   <Route path="wallet" element={<WalletsView />} />
                 </Route>
 
-                {/* Admin-only routes */}
-                <Route path="admins" element={<RoleGuard roles={["admin"]}><AdminsManagement /></RoleGuard>} />
+                {/* Admin/moderator only */}
                 <Route path="providers" element={<RoleGuard roles={["admin", "moderator"]}><Providers /></RoleGuard>} />
                 <Route path="providers/:id" element={<RoleGuard roles={["admin", "moderator"]}><ProviderDetails /></RoleGuard>} />
                 <Route path="patients" element={<RoleGuard roles={["admin", "moderator"]}><Patient /></RoleGuard>} />
                 <Route path="patients/:id" element={<RoleGuard roles={["admin", "moderator"]}><PatientDetails /></RoleGuard>} />
                 <Route path="report" element={<RoleGuard roles={["admin", "moderator"]}><Reports /></RoleGuard>} />
+
+                {/* Admin only */}
+                <Route path="admins" element={<RoleGuard roles={["admin"]}><AdminsManagement /></RoleGuard>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
