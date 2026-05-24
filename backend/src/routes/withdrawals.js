@@ -2,6 +2,7 @@ const { Router } = require("express");
 const db = require("../config/db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
+const { trigger } = require("../lib/novu");
 
 const router = Router();
 
@@ -75,7 +76,22 @@ router.put("/:id", requireAuth, requireRole("admin"), validate("updateWithdrawal
       return res.status(404).json({ error: "Withdrawal not found" });
     }
 
-    res.json(rows[0]);
+    const updated = rows[0];
+
+    // Notify provider about withdrawal status change
+    const user = await db.query(
+      "SELECT clerk_user_id, full_name FROM users WHERE id = $1",
+      [updated.user_id]
+    );
+    if (user.rows.length > 0) {
+      trigger("withdrawal-status", user.rows[0].clerk_user_id, {
+        amount: String(updated.amount),
+        status: updated.status,
+        withdrawalId: updated.id,
+      });
+    }
+
+    res.json(updated);
   } catch (err) {
     next(err);
   }

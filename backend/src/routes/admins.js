@@ -2,6 +2,7 @@ const { Router } = require("express");
 const db = require("../config/db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
+const { trigger } = require("../lib/novu");
 
 const router = Router();
 
@@ -56,7 +57,21 @@ router.post("/", requireAuth, requireRole("admin"), validate("createAdmin"), asy
       [clerk_user_id, email, full_name, role, status || "active", account_number]
     );
 
-    res.status(201).json(rows[0]);
+    const admin = rows[0];
+
+    // Notify all existing admins about new team member
+    const admins = await db.query(
+      "SELECT clerk_user_id FROM users WHERE role = 'admin' AND id != $1",
+      [admin.id]
+    );
+    for (const a of admins.rows) {
+      trigger("new-admin-created", a.clerk_user_id, {
+        adminName: admin.full_name,
+        role: admin.role,
+      });
+    }
+
+    res.status(201).json(admin);
   } catch (err) {
     next(err);
   }

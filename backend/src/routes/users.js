@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require("../config/db");
 const { requireAuth } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
+const { trigger } = require("../lib/novu");
 
 // POST /sync — upsert user from Clerk, create profile if not exists
 // First user gets admin role automatically (bootstrap)
@@ -63,6 +64,16 @@ router.post("/sync", requireAuth, async (req, res, next) => {
          VALUES ($1, NULL, NULL, CURRENT_DATE)`,
         [rows[0].id]
       );
+
+      // Notify admins
+      const admins = await db.query(
+        "SELECT clerk_user_id FROM users WHERE role = 'admin'"
+      );
+      for (const a of admins.rows) {
+        trigger("patient-registered", a.clerk_user_id, {
+          patientName: full_name || email,
+        });
+      }
     }
 
     res.status(201).json(rows[0]);

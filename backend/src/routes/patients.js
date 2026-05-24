@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require("../config/db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
+const { trigger } = require("../lib/novu");
 
 // GET / — list patients with optional filters
 router.get("/", requireAuth, async (req, res, next) => {
@@ -128,6 +129,16 @@ router.post("/", requireAuth, requireRole("admin"), validate("createPatient"), a
       );
 
       await client.query("COMMIT");
+
+      // Notify all admins about new patient
+      const admins = await db.query(
+        "SELECT clerk_user_id FROM users WHERE role = 'admin'"
+      );
+      for (const a of admins.rows) {
+        trigger("patient-registered", a.clerk_user_id, {
+          patientName: full_name,
+        });
+      }
 
       res.status(201).json({ ...user, ...patientResult.rows[0] });
     } catch (err) {
