@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import RolePicker from "./RolePicker";
+import { UserProvider } from "../context/UserContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
@@ -93,7 +94,7 @@ export default function ProtectedRoute({ children }) {
         ) : needsRole ? (
           <RolePicker onSelect={handleRoleSelect} />
         ) : profile ? (
-          children
+          <UserProvider profile={profile}>{children}</UserProvider>
         ) : (
           <Navigate to="/login" replace />
         )}

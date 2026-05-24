@@ -1,18 +1,27 @@
 const { Router } = require("express");
 const db = require("../config/db");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requireRole, attachUser } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
 
 const router = Router();
 
-// GET / — list transactions, optional ?status filter
-router.get("/", requireAuth, async (req, res, next) => {
+// GET / — list transactions with role-based filtering
+router.get("/", requireAuth, attachUser, async (req, res, next) => {
   try {
     const { status, limit = 50, offset = 0 } = req.query;
 
     const conditions = [];
     const params = [];
     let paramIdx = 1;
+
+    // Role-based filtering
+    if (req.user?.role === "provider") {
+      conditions.push(`t.provider_id = $${paramIdx++}`);
+      params.push(req.user.id);
+    } else if (req.user?.role === "patient") {
+      conditions.push(`t.patient_id = $${paramIdx++}`);
+      params.push(req.user.id);
+    }
 
     if (status) {
       conditions.push(`t.status = $${paramIdx++}`);

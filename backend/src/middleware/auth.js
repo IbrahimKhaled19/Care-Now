@@ -52,13 +52,14 @@ function requireRole(...roles) {
 
 /**
  * Attach user profile if authenticated, but don't block.
+ * Used as default middleware on all routes.
  */
 async function attachUser(req, res, next) {
   try {
     const auth = getAuth(req);
     if (auth.userId) {
       const { rows } = await db.query(
-        "SELECT id, clerk_user_id, email, full_name, role, status FROM users WHERE clerk_user_id = $1",
+        "SELECT id, clerk_user_id, email, full_name, role, status, avatar_url FROM users WHERE clerk_user_id = $1",
         [auth.userId]
       );
       if (rows.length > 0) {

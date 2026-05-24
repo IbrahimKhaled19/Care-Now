@@ -1,19 +1,25 @@
 const { Router } = require("express");
 const db = require("../config/db");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requireRole, attachUser } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
 const { trigger } = require("../lib/novu");
 
 const router = Router();
 
-// GET / — list withdrawals, optional ?status filter
-router.get("/", requireAuth, async (req, res, next) => {
+// GET / — list withdrawals with role-based filtering
+router.get("/", requireAuth, attachUser, async (req, res, next) => {
   try {
     const { status, limit = 50, offset = 0 } = req.query;
 
     const conditions = [];
     const params = [];
     let paramIdx = 1;
+
+    // Role-based filtering: providers see only their withdrawals
+    if (req.user?.role === "provider") {
+      conditions.push(`w.user_id = $${paramIdx++}`);
+      params.push(req.user.id);
+    }
 
     if (status) {
       conditions.push(`w.status = $${paramIdx++}`);

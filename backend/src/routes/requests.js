@@ -1,17 +1,26 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requireRole, attachUser } = require("../middleware/auth");
 const { validate } = require("../middleware/validate");
 const { trigger } = require("../lib/novu");
 
-// GET / — list all requests with optional filters
-router.get("/", requireAuth, async (req, res, next) => {
+// GET / — list requests with optional filters (role-based)
+router.get("/", requireAuth, attachUser, async (req, res, next) => {
   try {
     const { status, search, limit = 50, offset = 0 } = req.query;
     const params = [];
     const conditions = [];
     let paramIdx = 1;
+
+    // Role-based filtering
+    if (req.user?.role === "provider") {
+      conditions.push(`r.provider_id = $${paramIdx++}`);
+      params.push(req.user.id);
+    } else if (req.user?.role === "patient") {
+      conditions.push(`r.patient_id = $${paramIdx++}`);
+      params.push(req.user.id);
+    }
 
     if (status) {
       conditions.push(`r.status = $${paramIdx++}`);
