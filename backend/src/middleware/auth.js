@@ -56,14 +56,15 @@ function requireRole(...roles) {
  */
 async function attachUser(req, res, next) {
   try {
-    const auth = getAuth(req);
-    if (!auth.userId) {
+    // requireAuth already set req.auth with userId
+    const userId = req.auth?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
     const { rows } = await db.query(
       "SELECT id, clerk_user_id, email, full_name, role, status, avatar_url FROM users WHERE clerk_user_id = $1",
-      [auth.userId]
+      [userId]
     );
 
     if (rows.length === 0) {

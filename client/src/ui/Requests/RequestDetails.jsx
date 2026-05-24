@@ -17,6 +17,8 @@ import { useRequest } from "../../hooks/useApi";
 import { api } from "../../lib/api";
 import { useToast } from "../common/Toast";
 import { useIsAdmin } from "../../context/UserContext";
+import { useProviders } from "../../hooks/useApi";
+import { usePatients } from "../../hooks/useApi";
 
 const RequestDetails = () => {
   const { id } = useParams();
@@ -25,12 +27,19 @@ const RequestDetails = () => {
   const { data: request, loading, error } = useRequest(id);
   const [updating, setUpdating] = useState(false);
   const isAdmin = useIsAdmin();
+  const { data: providers } = useProviders();
+  const { data: patients } = usePatients();
+
+  const provider = providers?.find((p) => p.id === request?.provider_id);
+  const patient = patients?.find((p) => p.id === request?.patient_id);
 
   const handleStatusChange = async (newStatus) => {
     try {
       setUpdating(true);
       await api.put(`/requests/${id}`, { status: newStatus });
-      toast.success(`Request ${newStatus === "in_progress" ? "started" : newStatus === "completed" ? "completed" : "canceled"}`);
+      toast.success(
+        `Request ${newStatus === "in_progress" ? "started" : newStatus === "completed" ? "completed" : "canceled"}`,
+      );
       navigate("/requests");
     } catch (err) {
       toast.error(err.message || "Failed to update status");
@@ -40,10 +49,10 @@ const RequestDetails = () => {
   };
 
   const patientData = request
-    ? { name: request.patient_name, email: "", location: "", dateJoined: "" }
+    ? { name: request.patient_name, email: "", location: "", dateJoined: "" , avatar: patient?.avatar }
     : null;
   const providerData = request
-    ? { name: request.provider_name, email: "", location: "", dateJoined: "" }
+    ? { name: request.provider_name, email: "", location: "", dateJoined: "" , avatar: provider?.avatar }
     : null;
 
   if (loading) {
@@ -61,7 +70,10 @@ const RequestDetails = () => {
       <PageContainer>
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <p className="text-sm text-gray-500">Request not found.</p>
-          <Link to="/requests" className="text-sm font-medium text-teal-600 hover:text-teal-800">
+          <Link
+            to="/requests"
+            className="text-sm font-medium text-teal-600 hover:text-teal-800"
+          >
             Back to Requests
           </Link>
         </div>

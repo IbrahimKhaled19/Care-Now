@@ -5,16 +5,16 @@ const db = require("../config/db");
 const router = Router();
 
 // Helper: build WHERE clause for role-based request filtering
-function requestFilter(user) {
-  if (user.role === "provider") return { clause: "AND r.provider_id = $2", param: user.id };
-  if (user.role === "patient") return { clause: "AND r.patient_id = $2", param: user.id };
+function requestFilter(user, paramIndex = 2) {
+  if (user.role === "provider") return { clause: `AND r.provider_id = $${paramIndex}`, param: user.id };
+  if (user.role === "patient") return { clause: `AND r.patient_id = $${paramIndex}`, param: user.id };
   return { clause: "", param: null };
 }
 
 // Helper: build WHERE clause for role-based transaction filtering
-function transactionFilter(user) {
-  if (user.role === "provider") return { clause: "AND t.provider_id = $2", param: user.id };
-  if (user.role === "patient") return { clause: "AND t.patient_id = $2", param: user.id };
+function transactionFilter(user, paramIndex = 1) {
+  if (user.role === "provider") return { clause: `AND t.provider_id = $${paramIndex}`, param: user.id };
+  if (user.role === "patient") return { clause: `AND t.patient_id = $${paramIndex}`, param: user.id };
   return { clause: "", param: null };
 }
 
@@ -26,7 +26,7 @@ function walletFilter(user) {
 
 // Helper: build WHERE clause for role-based withdrawal filtering
 function withdrawalFilter(user) {
-  if (user.role === "provider") return { clause: "AND w.user_id = $2", param: user.id };
+  if (user.role === "provider") return { clause: "AND w.user_id = $1", param: user.id };
   return { clause: "", param: null };
 }
 
@@ -150,7 +150,7 @@ router.get("/revenue-by-service", requireAuth, attachUser, async (req, res, next
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateStr = dateThreshold.toISOString().split("T")[0];
-    const tf = transactionFilter(req.user);
+    const tf = transactionFilter(req.user, 2);
     const params = tf.param ? [dateStr, tf.param] : [dateStr];
 
     const { rows } = await db.query(
