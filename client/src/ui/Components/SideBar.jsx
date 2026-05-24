@@ -40,6 +40,7 @@ const navItems = [
 function SideBar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [inboxKey, setInboxKey] = useState(0);
   const { user } = useUser();
 
   useEffect(() => {
@@ -138,7 +139,10 @@ function SideBar() {
             {/* Notifications */}
             <div className={collapsed ? "flex justify-center mb-2" : "px-3 py-2 mb-2"}>
               <Suspense fallback={null}>
-                <NotificationInbox onNavigate={() => setMobileOpen(false)} />
+                <NotificationInbox
+                  key={inboxKey}
+                  onNavigate={() => { setMobileOpen(false); setInboxKey((k) => k + 1); }}
+                />
               </Suspense>
             </div>
 
