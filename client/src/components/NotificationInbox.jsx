@@ -1,8 +1,10 @@
 import { Inbox } from "@novu/react";
 import { useUser } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
 
 export default function NotificationInbox() {
   const { user } = useUser();
+  const navigate = useNavigate();
   const applicationIdentifier = import.meta.env.VITE_NOVU_APP_ID;
 
   if (!applicationIdentifier || !user) return null;
@@ -11,6 +13,13 @@ export default function NotificationInbox() {
     <Inbox
       applicationIdentifier={applicationIdentifier}
       subscriberId={user.id}
+      routerPush={(url) => navigate(url)}
+      onNotificationClick={(notification) => {
+        const url = notification?.cta?.data?.url;
+        if (url) {
+          navigate(url);
+        }
+      }}
       appearance={{
         variables: {
           colorPrimary: "#0d9488",
