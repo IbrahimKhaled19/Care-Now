@@ -6,8 +6,8 @@ const router = Router();
 
 // Helper: build WHERE clause for role-based request filtering
 function requestFilter(user) {
-  if (user.role === "provider") return { clause: "AND r.provider_id = $3", param: user.id };
-  if (user.role === "patient") return { clause: "AND r.patient_id = $3", param: user.id };
+  if (user.role === "provider") return { clause: "AND r.provider_id = $2", param: user.id };
+  if (user.role === "patient") return { clause: "AND r.patient_id = $2", param: user.id };
   return { clause: "", param: null };
 }
 
@@ -58,12 +58,13 @@ router.get("/stats", requireAuth, attachUser, async (req, res, next) => {
     );
 
     // Previous period
+    const prevClause = rf.clause ? rf.clause.replace("$2", "$3") : "";
     const prevParams = rf.param ? [prevStr, dateStr, rf.param] : [prevStr, dateStr];
     const previous = await db.query(
       `SELECT
         COUNT(*) as total_requests,
         COUNT(*) FILTER (WHERE status = 'completed') as completed
-      FROM requests r WHERE r.date >= $1 AND r.date < $2 ${rf.clause}`,
+      FROM requests r WHERE r.date >= $1 AND r.date < $2 ${prevClause}`,
       prevParams
     );
 
