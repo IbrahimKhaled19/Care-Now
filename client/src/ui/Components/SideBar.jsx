@@ -138,7 +138,7 @@ function SideBar() {
             {/* Notifications */}
             <div className={collapsed ? "flex justify-center mb-2" : "px-3 py-2 mb-2"}>
               <Suspense fallback={null}>
-                <NotificationInbox />
+                <NotificationInbox onNavigate={() => setMobileOpen(false)} />
               </Suspense>
             </div>
 

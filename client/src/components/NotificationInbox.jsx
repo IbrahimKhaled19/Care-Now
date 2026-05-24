@@ -2,22 +2,27 @@ import { Inbox } from "@novu/react";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 
-export default function NotificationInbox() {
+export default function NotificationInbox({ onNavigate }) {
   const { user } = useUser();
   const navigate = useNavigate();
   const applicationIdentifier = import.meta.env.VITE_NOVU_APP_ID;
 
   if (!applicationIdentifier || !user) return null;
 
+  const handleNavigate = (url) => {
+    if (onNavigate) onNavigate();
+    navigate(url);
+  };
+
   return (
     <Inbox
       applicationIdentifier={applicationIdentifier}
       subscriberId={user.id}
-      routerPush={(url) => navigate(url)}
+      routerPush={(url) => handleNavigate(url)}
       onNotificationClick={(notification) => {
         const url = notification?.cta?.data?.url;
         if (url) {
-          navigate(url);
+          handleNavigate(url);
         }
       }}
       appearance={{
