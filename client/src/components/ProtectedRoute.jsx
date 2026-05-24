@@ -32,6 +32,7 @@ export default function ProtectedRoute({ children }) {
       const body = {
         email: clerkUser.primaryEmailAddress?.emailAddress,
         full_name: clerkUser.fullName || clerkUser.firstName || "",
+        avatar_url: clerkUser.imageUrl || null,
       };
       if (role) body.role = role;
 

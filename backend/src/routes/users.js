@@ -10,11 +10,11 @@ const { trigger } = require("../lib/novu");
 // New non-admin users must provide role (provider or patient)
 router.post("/sync", requireAuth, async (req, res, next) => {
   try {
-    const { email, full_name, role } = req.body;
+    const { email, full_name, role, avatar_url } = req.body;
 
     // Check if user exists
     const existing = await db.query(
-      "SELECT id, clerk_user_id, email, full_name, role, status, account_number, created_at FROM users WHERE clerk_user_id = $1",
+      "SELECT id, clerk_user_id, email, full_name, role, status, account_number, avatar_url, created_at FROM users WHERE clerk_user_id = $1",
       [req.auth.userId]
     );
 
@@ -28,10 +28,10 @@ router.post("/sync", requireAuth, async (req, res, next) => {
 
     if (isFirstUser) {
       const { rows } = await db.query(
-        `INSERT INTO users (clerk_user_id, email, full_name, role, status)
-         VALUES ($1, $2, $3, 'admin', 'active')
-         RETURNING id, clerk_user_id, email, full_name, role, status, account_number, created_at`,
-        [req.auth.userId, email || "", full_name || ""]
+        `INSERT INTO users (clerk_user_id, email, full_name, role, status, avatar_url)
+         VALUES ($1, $2, $3, 'admin', 'active', $4)
+         RETURNING id, clerk_user_id, email, full_name, role, status, account_number, avatar_url, created_at`,
+        [req.auth.userId, email || "", full_name || "", avatar_url || null]
       );
       return res.status(201).json(rows[0]);
     }
@@ -42,10 +42,10 @@ router.post("/sync", requireAuth, async (req, res, next) => {
     }
 
     const { rows } = await db.query(
-      `INSERT INTO users (clerk_user_id, email, full_name, role, status)
-       VALUES ($1, $2, $3, $4, 'active')
-       RETURNING id, clerk_user_id, email, full_name, role, status, account_number, created_at`,
-      [req.auth.userId, email || "", full_name || "", role]
+      `INSERT INTO users (clerk_user_id, email, full_name, role, status, avatar_url)
+       VALUES ($1, $2, $3, $4, 'active', $5)
+       RETURNING id, clerk_user_id, email, full_name, role, status, account_number, avatar_url, created_at`,
+      [req.auth.userId, email || "", full_name || "", role, avatar_url || null]
     );
 
     // If provider, also create provider record

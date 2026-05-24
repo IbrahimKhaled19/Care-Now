@@ -1,8 +1,17 @@
-const NOVU_API_URL = "https://api.novu.co/v1";
+const { Novu } = require("@novu/api");
+
+let novu = null;
+
+function getNovu() {
+  if (!novu && process.env.NOVU_API_KEY) {
+    novu = new Novu(process.env.NOVU_API_KEY);
+  }
+  return novu;
+}
 
 async function trigger(workflowId, subscriberId, payload = {}) {
-  const apiKey = process.env.NOVU_API_KEY;
-  if (!apiKey) {
+  const client = getNovu();
+  if (!client) {
     console.warn("[Novu] NOVU_API_KEY not set, skipping notification");
     return null;
   }
@@ -13,30 +22,20 @@ async function trigger(workflowId, subscriberId, payload = {}) {
   }
 
   try {
-    const res = await fetch(`${NOVU_API_URL}/events/trigger`, {
-      method: "POST",
-      headers: {
-        "Authorization": `ApiKey ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: workflowId,
-        to: { subscriberId },
-        payload,
-      }),
+    // Ensure subscriber exists in Novu
+    await client.subscribers.create({
+      subscriberId,
     });
 
-    const data = await res.json();
+    const result = await client.trigger(workflowId, {
+      to: { subscriberId },
+      payload,
+    });
 
-    if (!res.ok) {
-      console.error(`[Novu] Trigger failed for "${workflowId}":`, data);
-      return null;
-    }
-
-    console.log(`[Novu] Triggered "${workflowId}" → subscriber "${subscriberId}" (txn: ${data.data?.transactionId})`);
-    return data;
+    console.log(`[Novu] Triggered "${workflowId}" to subscriber "${subscriberId}"`);
+    return result;
   } catch (err) {
-    console.error(`[Novu] Trigger error for "${workflowId}":`, err.message);
+    console.error(`[Novu] Trigger failed for "${workflowId}":`, err.message);
     return null;
   }
 }
