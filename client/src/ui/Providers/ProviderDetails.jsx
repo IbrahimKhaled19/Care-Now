@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useProvider, useProviderTransactions, useProviderServices } from "../../hooks/useApi";
+import {
+  useProvider,
+  useProviderTransactions,
+  useProviderServices,
+} from "../../hooks/useApi";
 import { useToast } from "../common/Toast";
 import { formatDate } from "../../lib/formatDate";
 import { api } from "../../lib/api";
@@ -23,6 +27,7 @@ import BaseTable from "../common/BaseTable";
 import PageContainer from "../common/PageContainer";
 import Skeleton from "../common/Skeleton";
 import CredentialsList from "../common/CredentialsList";
+import InitialsAvatar from "../common/InitialsAvatar";
 
 const credentials = [
   { label: "Front ID", required: true },
@@ -37,7 +42,8 @@ const serviceIcons = [Heart, User, Baby, Stethoscope];
 function ProviderDetails() {
   const { id } = useParams();
   const { data: provider, loading, error, refetch } = useProvider(id);
-  const { data: transactions, loading: loadingTx } = useProviderTransactions(id);
+  const { data: transactions, loading: loadingTx } =
+    useProviderTransactions(id);
   const { data: services, loading: loadingServices } = useProviderServices(id);
   const [toggling, setToggling] = useState(false);
   const toast = useToast();
@@ -47,7 +53,9 @@ function ProviderDetails() {
     setToggling(true);
     try {
       await api.put(`/providers/${id}`, { status: newStatus });
-      toast.success(`Provider ${newStatus === "suspended" ? "suspended" : "activated"} successfully.`);
+      toast.success(
+        `Provider ${newStatus === "suspended" ? "suspended" : "activated"} successfully.`,
+      );
       refetch();
     } catch (err) {
       toast.error(err.message || "Failed to update provider status.");
@@ -73,7 +81,10 @@ function ProviderDetails() {
       <PageContainer>
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Error</h1>
         <p className="text-sm text-gray-500">{error}</p>
-        <Link to="/providers" className="inline-flex items-center gap-2 mt-4 text-sm text-teal-600 hover:text-teal-800">
+        <Link
+          to="/providers"
+          className="inline-flex items-center gap-2 mt-4 text-sm text-teal-600 hover:text-teal-800"
+        >
           <ArrowLeft size={16} /> Back to Providers
         </Link>
       </PageContainer>
@@ -83,9 +94,16 @@ function ProviderDetails() {
   if (!provider) {
     return (
       <PageContainer>
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Provider Not Found</h1>
-        <p className="text-sm text-gray-500">No provider found with ID "{id}".</p>
-        <Link to="/providers" className="inline-flex items-center gap-2 mt-4 text-sm text-teal-600 hover:text-teal-800">
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+          Provider Not Found
+        </h1>
+        <p className="text-sm text-gray-500">
+          No provider found with ID "{id}".
+        </p>
+        <Link
+          to="/providers"
+          className="inline-flex items-center gap-2 mt-4 text-sm text-teal-600 hover:text-teal-800"
+        >
           <ArrowLeft size={16} /> Back to Providers
         </Link>
       </PageContainer>
@@ -106,10 +124,21 @@ function ProviderDetails() {
                 onClick={handleToggleStatus}
                 disabled={toggling}
               >
-                {provider.status === "active" ? <Pause size={14} className="mr-1.5" /> : <Play size={14} className="mr-1.5" />}
-                {toggling ? "Updating..." : provider.status === "active" ? "Suspend" : "Activate"}
+                {provider.status === "active" ? (
+                  <Pause size={14} className="mr-1.5" />
+                ) : (
+                  <Play size={14} className="mr-1.5" />
+                )}
+                {toggling
+                  ? "Updating..."
+                  : provider.status === "active"
+                    ? "Suspend"
+                    : "Activate"}
               </Button>
-              <Link to="/providers" className="flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 transition-colors duration-150">
+              <Link
+                to="/providers"
+                className="flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 transition-colors duration-150"
+              >
                 <ArrowLeft size={16} /> Back to Providers
               </Link>
             </div>
@@ -120,14 +149,20 @@ function ProviderDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-6">
           <div className="flex flex-col sm:flex-row gap-6">
-            <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0">
-              <img src={provider.avatar || "/assets/landing_page/provider.png"} alt={provider.full_name} className="w-full h-full object-cover" />
-            </div>
+            <InitialsAvatar
+              name={provider.full_name}
+              src={provider.avatar}
+              size="lg"
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">{provider.full_name}</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">{provider.specialty}</p>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    {provider.full_name}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {provider.specialty}
+                  </p>
                 </div>
                 <StatusBadge status={provider.status} />
               </div>
@@ -171,13 +206,22 @@ function ProviderDetails() {
               {(services || []).map((service, idx) => {
                 const ServiceIcon = serviceIcons[idx % serviceIcons.length];
                 return (
-                  <div key={service.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-100">
+                  <div
+                    key={service.id}
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-100"
+                  >
                     <div className="w-9 h-9 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
                       <ServiceIcon size={18} className="text-teal-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{service.name}</p>
-                      {service.description && <p className="text-xs text-gray-500 mt-0.5">{service.description}</p>}
+                      <p className="text-sm font-medium text-gray-800">
+                        {service.name}
+                      </p>
+                      {service.description && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {service.description}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
@@ -188,15 +232,29 @@ function ProviderDetails() {
       </div>
 
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">Transaction History</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">
+          Transaction History
+        </h3>
         {loadingTx ? (
           <Skeleton className="h-48 w-full rounded-xl" />
         ) : (
           <BaseTable
             header={
               <tr>
-                {["Transaction ID", "Patient", "Date", "Service", "Amount", "Status"].map((h) => (
-                  <th key={h} className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                {[
+                  "Transaction ID",
+                  "Patient",
+                  "Date",
+                  "Service",
+                  "Amount",
+                  "Status",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             }
@@ -206,13 +264,28 @@ function ProviderDetails() {
             totalPages={1}
             emptyMessage="No transactions found for this provider."
             rowRenderer={(tx) => (
-              <tr key={tx.id} className="hover:bg-gray-50 transition-colors duration-100">
-                <td className="px-5 py-3.5 text-sm font-medium text-gray-800">{tx.id}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-600">{tx.patient_name}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(tx.date)}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-600">{tx.service}</td>
-                <td className="px-5 py-3.5 text-sm font-medium text-gray-800">${parseFloat(tx.amount).toFixed(2)}</td>
-                <td className="px-5 py-3.5"><StatusBadge status={tx.status} /></td>
+              <tr
+                key={tx.id}
+                className="hover:bg-gray-50 transition-colors duration-100"
+              >
+                <td className="px-5 py-3.5 text-sm font-medium text-gray-800">
+                  {tx.id}
+                </td>
+                <td className="px-5 py-3.5 text-sm text-gray-600">
+                  {tx.patient_name}
+                </td>
+                <td className="px-5 py-3.5 text-sm text-gray-600">
+                  {formatDate(tx.date)}
+                </td>
+                <td className="px-5 py-3.5 text-sm text-gray-600">
+                  {tx.service}
+                </td>
+                <td className="px-5 py-3.5 text-sm font-medium text-gray-800">
+                  ${parseFloat(tx.amount).toFixed(2)}
+                </td>
+                <td className="px-5 py-3.5">
+                  <StatusBadge status={tx.status} />
+                </td>
               </tr>
             )}
           />

@@ -51,7 +51,7 @@ const PatientsTable = ({ filters = {} }) => {
     >
       <td className="px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <InitialsAvatar name={patient.name} />
+          <InitialsAvatar name={patient.name} src={patient.avatar} />
           <div>
             <p className="text-sm font-medium text-gray-800">{patient.name}</p>
             <p className="text-xs text-gray-500">{patient.email}</p>

@@ -8,7 +8,6 @@ const router = Router();
 // Mounted at /api/clerk/webhook in index.js
 router.post("/", async (req, res, next) => {
   try {
-    // Verify webhook signature
     const svixId = req.headers["svix-id"];
     const svixTimestamp = req.headers["svix-timestamp"];
     const svixSignature = req.headers["svix-signature"];
@@ -40,33 +39,34 @@ router.post("/", async (req, res, next) => {
     const { type, data } = event;
 
     if (type === "user.created") {
-      const { id, email_addresses, first_name, last_name } = data;
+      const { id, email_addresses, first_name, last_name, image_url } = data;
       const email = email_addresses?.[0]?.email_address || "";
       const full_name = [first_name, last_name].filter(Boolean).join(" ");
 
-      // First user gets admin, rest get patient
       const userCount = await db.query("SELECT COUNT(*) FROM users");
       const role = parseInt(userCount.rows[0].count) === 0 ? "admin" : "patient";
 
       await db.query(
-        `INSERT INTO users (clerk_user_id, email, full_name, role, status)
-         VALUES ($1, $2, $3, $4, 'active')
-         ON CONFLICT (clerk_user_id) DO NOTHING`,
-        [id, email, full_name, role]
+        `INSERT INTO users (clerk_user_id, email, full_name, role, status, avatar_url)
+         VALUES ($1, $2, $3, $4, 'active', $5)
+         ON CONFLICT (clerk_user_id) DO UPDATE SET avatar_url = $5`,
+        [id, email, full_name, role, image_url || null]
       );
 
-      console.log(`User synced: ${email} (role: ${role})`);
+      console.log(`User synced: ${email} (role: ${role}, avatar: ${image_url ? "yes" : "no"})`);
     }
 
     if (type === "user.updated") {
-      const { id, email_addresses, first_name, last_name } = data;
+      const { id, email_addresses, first_name, last_name, image_url } = data;
       const email = email_addresses?.[0]?.email_address || "";
       const full_name = [first_name, last_name].filter(Boolean).join(" ");
 
       await db.query(
-        `UPDATE users SET email = $2, full_name = $3 WHERE clerk_user_id = $1`,
-        [id, email, full_name]
+        `UPDATE users SET email = $2, full_name = $3, avatar_url = $4 WHERE clerk_user_id = $1`,
+        [id, email, full_name, image_url || null]
       );
+
+      console.log(`User updated: ${email} (avatar: ${image_url ? "yes" : "no"})`);
     }
 
     if (type === "user.deleted") {

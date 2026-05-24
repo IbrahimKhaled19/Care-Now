@@ -16,6 +16,7 @@ import { usePatient, usePatientTransactions, usePatientMedical } from "../../hoo
 import { useToast } from "../common/Toast";
 import { formatDate } from "../../lib/formatDate";
 import { api } from "../../lib/api";
+import InitialsAvatar from "../common/InitialsAvatar";
 import StatusBadge from "../common/StatusBadge";
 import Button from "../common/Button";
 import BaseHeader from "../common/BaseHeader";
@@ -123,9 +124,7 @@ function PatientDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-6">
           <div className="flex flex-col sm:flex-row gap-6">
-            <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0">
-              <img src={patient.avatar || "/assets/landing_page/patient.png"} alt={patient.full_name} className="w-full h-full object-cover" />
-            </div>
+            <InitialsAvatar name={patient.full_name} src={patient.avatar} size="lg" />
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>

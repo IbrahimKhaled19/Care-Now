@@ -31,7 +31,8 @@ router.get("/", requireAuth, async (req, res, next) => {
 
     const { rows } = await db.query(
       `SELECT u.id, u.full_name AS name, p.specialty, p.visits, p.credentials,
-              p.accept_rate, p.rating, u.status
+              p.accept_rate, p.rating, p.avatar, u.status,
+              COALESCE(u.avatar_url, p.avatar) AS avatar
        FROM providers p
        JOIN users u ON p.id = u.id
        ${where}
@@ -52,7 +53,8 @@ router.get("/:id", requireAuth, async (req, res, next) => {
     const { rows } = await db.query(
       `SELECT u.id, u.clerk_user_id, u.email, u.full_name, u.role, u.status,
               u.account_number, u.created_at,
-              p.specialty, p.visits, p.credentials, p.accept_rate, p.rating, p.avatar
+              p.specialty, p.visits, p.credentials, p.accept_rate, p.rating,
+              COALESCE(u.avatar_url, p.avatar) AS avatar
        FROM providers p
        JOIN users u ON p.id = u.id
        WHERE p.id = $1`,
