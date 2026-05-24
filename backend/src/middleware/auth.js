@@ -51,25 +51,30 @@ function requireRole(...roles) {
 }
 
 /**
- * Attach user profile if authenticated, but don't block.
- * Used as default middleware on all routes.
+ * Attach user profile if authenticated. Blocks if user not found in DB.
+ * Used as default middleware on data routes.
  */
 async function attachUser(req, res, next) {
   try {
     const auth = getAuth(req);
-    if (auth.userId) {
-      const { rows } = await db.query(
-        "SELECT id, clerk_user_id, email, full_name, role, status, avatar_url FROM users WHERE clerk_user_id = $1",
-        [auth.userId]
-      );
-      if (rows.length > 0) {
-        req.user = rows[0];
-      }
+    if (!auth.userId) {
+      return res.status(401).json({ error: "Authentication required" });
     }
+
+    const { rows } = await db.query(
+      "SELECT id, clerk_user_id, email, full_name, role, status, avatar_url FROM users WHERE clerk_user_id = $1",
+      [auth.userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User profile not found. Please complete sign-up." });
+    }
+
+    req.user = rows[0];
+    next();
   } catch (err) {
-    // Non-blocking — continue without user
+    next(err);
   }
-  next();
 }
 
 module.exports = { requireAuth, requireRole, attachUser };
