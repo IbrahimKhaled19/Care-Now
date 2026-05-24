@@ -8,6 +8,7 @@ import { api } from "../../lib/api";
 import StatusBadge from "../common/StatusBadge";
 import BaseTable from "../common/BaseTable";
 import InitialsAvatar from "../common/InitialsAvatar";
+import { useIsAdmin } from "../../context/UserContext";
 
 const columns = ["Patient", "Status", "Location", "Date Joined", ""];
 
@@ -16,6 +17,7 @@ const PatientsTable = ({ filters = {} }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const { data: patients, loading, refetch } = usePatients(filters);
   const toast = useToast();
+  const isAdmin = useIsAdmin();
 
   const handleToggleStatus = async (e, patient) => {
     e.stopPropagation();
@@ -64,26 +66,28 @@ const PatientsTable = ({ filters = {} }) => {
       <td className="px-5 py-3.5 text-sm text-gray-600">{patient.location}</td>
       <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(patient.date)}</td>
       <td className="px-5 py-3.5">
-        <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}`); }}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors duration-100 cursor-pointer"
-            aria-label="View patient"
-          >
-            <Pencil size={16} />
-          </button>
-          <button
-            onClick={(e) => handleToggleStatus(e, patient)}
-            className={`p-1.5 rounded-lg transition-colors duration-100 cursor-pointer ${
-              patient.state === "active"
-                ? "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
-                : "text-gray-400 hover:text-teal-600 hover:bg-teal-50"
-            }`}
-            aria-label={patient.state === "active" ? "Suspend patient" : "Activate patient"}
-          >
-            {patient.state === "active" ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}`); }}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors duration-100 cursor-pointer"
+              aria-label="View patient"
+            >
+              <Pencil size={16} />
+            </button>
+            <button
+              onClick={(e) => handleToggleStatus(e, patient)}
+              className={`p-1.5 rounded-lg transition-colors duration-100 cursor-pointer ${
+                patient.state === "active"
+                  ? "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
+                  : "text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+              }`}
+              aria-label={patient.state === "active" ? "Suspend patient" : "Activate patient"}
+            >
+              {patient.state === "active" ? <Pause size={16} /> : <Play size={16} />}
+            </button>
+          </div>
+        )}
       </td>
     </tr>
   );

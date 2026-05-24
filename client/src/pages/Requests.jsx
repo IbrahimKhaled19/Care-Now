@@ -8,6 +8,7 @@ import PageContainer from "../ui/common/PageContainer";
 import Button from "../ui/common/Button";
 import { api } from "../lib/api";
 import { useToast } from "../ui/common/Toast";
+import { useIsAdmin } from "../context/UserContext";
 
 // Tab ID → backend enum value for filtering
 const STATUS_FILTER = {
@@ -23,6 +24,7 @@ const Requests = () => {
   const { data: patients } = usePatients({});
   const { data: providers } = useProviders({});
   const toast = useToast();
+  const isAdmin = useIsAdmin();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -81,10 +83,12 @@ const Requests = () => {
         title="Requests"
         subtitle="Manage and track care requests"
         actions={
-          <Button onClick={() => setShowForm(true)}>
-            <Plus size={16} className="mr-1.5" />
-            New Request
-          </Button>
+          isAdmin && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus size={16} className="mr-1.5" />
+              New Request
+            </Button>
+          )
         }
       />
 

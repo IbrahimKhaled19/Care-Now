@@ -9,6 +9,7 @@ import { formatDate } from "../../lib/formatDate";
 import { exportCsv } from "../../lib/exportCsv";
 import { api } from "../../lib/api";
 import { useToast } from "../common/Toast";
+import { useIsAdmin } from "../../context/UserContext";
 
 const columns = [
   "ID",
@@ -43,6 +44,7 @@ function WithdrawalsView() {
   const filters = statusFilter ? { status: statusFilter } : {};
   const { data: withdrawals, loading, refetch } = useWithdrawals(filters);
   const toast = useToast();
+  const isAdmin = useIsAdmin();
 
   const rows = withdrawals || [];
 
@@ -87,18 +89,22 @@ function WithdrawalsView() {
             {w.amount}
           </td>
           <td className="px-5 py-3.5">
-            <select
-              value={w.status}
-              onChange={(e) => handleStatusChange(w.id, e.target.value)}
-              disabled={busy}
-              className="text-xs font-medium px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer disabled:opacity-50"
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            {isAdmin ? (
+              <select
+                value={w.status}
+                onChange={(e) => handleStatusChange(w.id, e.target.value)}
+                disabled={busy}
+                className="text-xs font-medium px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer disabled:opacity-50"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <StatusBadge status={w.status} />
+            )}
           </td>
           <td className="px-5 py-3.5 text-sm text-gray-600">{w.method}</td>
           <td className="px-5 py-3.5 text-sm text-gray-600">

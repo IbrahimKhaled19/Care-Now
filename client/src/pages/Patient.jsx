@@ -7,6 +7,7 @@ import Button from "../ui/common/Button";
 import { useToast } from "../ui/common/Toast";
 import { api } from "../lib/api";
 import { UserPlus, X } from "lucide-react";
+import { useIsAdmin } from "../context/UserContext";
 
 function Patient() {
   const [statusFilter, setStatusFilter] = useState(null);
@@ -20,6 +21,7 @@ function Patient() {
   const [submitting, setSubmitting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const toast = useToast();
+  const isAdmin = useIsAdmin();
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -52,18 +54,20 @@ function Patient() {
         title="Patients"
         subtitle="Manage patient records and activity"
         actions={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            {showForm ? (
-              <X size={16} className="mr-2" />
-            ) : (
-              <UserPlus size={16} className="mr-2" />
-            )}
-            {showForm ? "Cancel" : "New Patient"}
-          </Button>
+          isAdmin && (
+            <Button onClick={() => setShowForm((v) => !v)}>
+              {showForm ? (
+                <X size={16} className="mr-2" />
+              ) : (
+                <UserPlus size={16} className="mr-2" />
+              )}
+              {showForm ? "Cancel" : "New Patient"}
+            </Button>
+          )
         }
       />
 
-      {showForm && (
+      {isAdmin && showForm && (
         <form
           onSubmit={handleSubmit}
           className="mt-5 bg-white rounded-xl border border-gray-100 p-5"

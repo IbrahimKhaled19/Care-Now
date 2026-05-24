@@ -7,6 +7,7 @@ import Button from "../ui/common/Button";
 import { useToast } from "../ui/common/Toast";
 import { api } from "../lib/api";
 import { UserPlus, X } from "lucide-react";
+import { useIsAdmin } from "../context/UserContext";
 
 function Providers() {
   const [activeTab, setActiveTab] = useState("all-providers");
@@ -17,6 +18,7 @@ function Providers() {
   const [submitting, setSubmitting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const toast = useToast();
+  const isAdmin = useIsAdmin();
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -50,14 +52,16 @@ function Providers() {
         title="Providers"
         subtitle="Manage and oversee healthcare providers"
         actions={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            {showForm ? <X size={16} className="mr-2" /> : <UserPlus size={16} className="mr-2" />}
-            {showForm ? "Cancel" : "New Provider"}
-          </Button>
+          isAdmin && (
+            <Button onClick={() => setShowForm((v) => !v)}>
+              {showForm ? <X size={16} className="mr-2" /> : <UserPlus size={16} className="mr-2" />}
+              {showForm ? "Cancel" : "New Provider"}
+            </Button>
+          )
         }
       />
 
-      {showForm && (
+      {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="mt-5 bg-white rounded-xl border border-gray-100 p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

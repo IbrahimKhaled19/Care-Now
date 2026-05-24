@@ -1,9 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { NavLink } from "react-router-dom";
 import { UserButton, useUser } from "@clerk/clerk-react";
-
-const NotificationInbox = lazy(() => import("../../components/NotificationInbox"));
-
 import {
   LayoutDashboard,
   ClipboardList,
@@ -16,25 +13,18 @@ import {
   X,
   ChevronLeft,
 } from "lucide-react";
+import { useProfile } from "../../context/UserContext";
 
-const navItems = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/dashboard",
-  },
+const NotificationInbox = lazy(() => import("../../components/NotificationInbox"));
+
+const allNavItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { id: "requests", label: "Requests", icon: ClipboardList, path: "/requests" },
-  {
-    id: "providers",
-    label: "Providers",
-    icon: Stethoscope,
-    path: "/providers",
-  },
-  { id: "patients", label: "Patients", icon: Users, path: "/patients" },
+  { id: "providers", label: "Providers", icon: Stethoscope, path: "/providers", roles: ["admin", "moderator"] },
+  { id: "patients", label: "Patients", icon: Users, path: "/patients", roles: ["admin", "moderator"] },
   { id: "billing", label: "Billing", icon: CreditCard, path: "/billing" },
-  { id: "reports", label: "Reports", icon: FileText, path: "/report" },
-  { id: "admins", label: "Admins", icon: Shield, path: "/admins" },
+  { id: "reports", label: "Reports", icon: FileText, path: "/report", roles: ["admin", "moderator"] },
+  { id: "admins", label: "Admins", icon: Shield, path: "/admins", roles: ["admin"] },
 ];
 
 function SideBar() {
@@ -42,12 +32,15 @@ function SideBar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [inboxKey, setInboxKey] = useState(0);
   const { user } = useUser();
+  const profile = useProfile();
+
+  const navItems = allNavItems.filter(
+    (item) => !item.roles || item.roles.includes(profile?.role)
+  );
 
   useEffect(() => {
     if (!mobileOpen) return;
-    const handleEscape = (e) => {
-      if (e.key === "Escape") setMobileOpen(false);
-    };
+    const handleEscape = (e) => { if (e.key === "Escape") setMobileOpen(false); };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [mobileOpen]);
@@ -105,10 +98,7 @@ function SideBar() {
           </div>
 
           {/* Navigation */}
-          <nav
-            aria-label="Main navigation"
-            className="flex-1 px-3 py-4 overflow-y-auto"
-          >
+          <nav aria-label="Main navigation" className="flex-1 px-3 py-4 overflow-y-auto">
             <ul className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -150,11 +140,7 @@ function SideBar() {
             {!collapsed && user && (
               <div className="flex items-center gap-3 px-3 py-2.5 mb-2">
                 <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-8 h-8",
-                    },
-                  }}
+                  appearance={{ elements: { avatarBox: "w-8 h-8" } }}
                 />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">
@@ -170,11 +156,7 @@ function SideBar() {
             {collapsed && (
               <div className="flex justify-center mb-2">
                 <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-8 h-8",
-                    },
-                  }}
+                  appearance={{ elements: { avatarBox: "w-8 h-8" } }}
                 />
               </div>
             )}

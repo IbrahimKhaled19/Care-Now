@@ -7,6 +7,7 @@ import BaseTable from "../common/BaseTable";
 import StatusBadge from "../common/StatusBadge";
 import InitialsAvatar from "../common/InitialsAvatar";
 import { Star, Pencil, Pause, Play } from "lucide-react";
+import { useIsAdmin } from "../../context/UserContext";
 
 const columns = [
   { key: "name", label: "Provider" },
@@ -24,6 +25,7 @@ function ProvidersTable({ filters = {} }) {
   const [currentPage, setCurrentPage] = useState(1);
   const { data: providers, loading, refetch } = useProviders(filters);
   const toast = useToast();
+  const isAdmin = useIsAdmin();
 
   const handleToggleStatus = async (e, provider) => {
     e.stopPropagation();
@@ -85,37 +87,39 @@ function ProvidersTable({ filters = {} }) {
           <StatusBadge status={provider.status} />
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/providers/${provider.id}`);
-              }}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors duration-100 cursor-pointer"
-              aria-label="Edit provider"
-            >
-              <Pencil size={16} />
-            </button>
-            <button
-              onClick={(e) => handleToggleStatus(e, provider)}
-              className={`p-1.5 rounded-lg transition-colors duration-100 cursor-pointer ${
-                provider.status === "active"
-                  ? "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
-                  : "text-gray-400 hover:text-teal-600 hover:bg-teal-50"
-              }`}
-              aria-label={
-                provider.status === "active"
-                  ? "Suspend provider"
-                  : "Activate provider"
-              }
-            >
-              {provider.status === "active" ? (
-                <Pause size={16} />
-              ) : (
-                <Play size={16} />
-              )}
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/providers/${provider.id}`);
+                }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors duration-100 cursor-pointer"
+                aria-label="Edit provider"
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                onClick={(e) => handleToggleStatus(e, provider)}
+                className={`p-1.5 rounded-lg transition-colors duration-100 cursor-pointer ${
+                  provider.status === "active"
+                    ? "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
+                    : "text-gray-400 hover:text-teal-600 hover:bg-teal-50"
+                }`}
+                aria-label={
+                  provider.status === "active"
+                    ? "Suspend provider"
+                    : "Activate provider"
+                }
+              >
+                {provider.status === "active" ? (
+                  <Pause size={16} />
+                ) : (
+                  <Play size={16} />
+                )}
+              </button>
+            </div>
+          )}
         </td>
       </tr>
     ),

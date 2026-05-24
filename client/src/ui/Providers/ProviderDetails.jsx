@@ -28,6 +28,7 @@ import PageContainer from "../common/PageContainer";
 import Skeleton from "../common/Skeleton";
 import CredentialsList from "../common/CredentialsList";
 import InitialsAvatar from "../common/InitialsAvatar";
+import { useIsAdmin } from "../../context/UserContext";
 
 const credentials = [
   { label: "Front ID", required: true },
@@ -47,6 +48,7 @@ function ProviderDetails() {
   const { data: services, loading: loadingServices } = useProviderServices(id);
   const [toggling, setToggling] = useState(false);
   const toast = useToast();
+  const isAdmin = useIsAdmin();
 
   const handleToggleStatus = async () => {
     const newStatus = provider.status === "active" ? "suspended" : "active";
@@ -118,23 +120,25 @@ function ProviderDetails() {
           subtitle="View provider profile and activity"
           actions={
             <div className="flex items-center gap-3">
-              <Button
-                variant={provider.status === "active" ? "secondary" : "primary"}
-                size="sm"
-                onClick={handleToggleStatus}
-                disabled={toggling}
-              >
-                {provider.status === "active" ? (
-                  <Pause size={14} className="mr-1.5" />
-                ) : (
-                  <Play size={14} className="mr-1.5" />
-                )}
-                {toggling
-                  ? "Updating..."
-                  : provider.status === "active"
-                    ? "Suspend"
-                    : "Activate"}
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant={provider.status === "active" ? "secondary" : "primary"}
+                  size="sm"
+                  onClick={handleToggleStatus}
+                  disabled={toggling}
+                >
+                  {provider.status === "active" ? (
+                    <Pause size={14} className="mr-1.5" />
+                  ) : (
+                    <Play size={14} className="mr-1.5" />
+                  )}
+                  {toggling
+                    ? "Updating..."
+                    : provider.status === "active"
+                      ? "Suspend"
+                      : "Activate"}
+                </Button>
+              )}
               <Link
                 to="/providers"
                 className="flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 transition-colors duration-150"

@@ -24,6 +24,7 @@ import BaseTable from "../common/BaseTable";
 import PageContainer from "../common/PageContainer";
 import Skeleton from "../common/Skeleton";
 import CredentialsList from "../common/CredentialsList";
+import { useIsAdmin } from "../../context/UserContext";
 
 const medicalIcons = {
   "Chronic Conditions": Heart,
@@ -45,6 +46,7 @@ function PatientDetails() {
   const { data: medicalInfo, loading: loadingMed } = usePatientMedical(id);
   const [toggling, setToggling] = useState(false);
   const toast = useToast();
+  const isAdmin = useIsAdmin();
 
   const handleToggleStatus = async () => {
     const newStatus = patient.status === "active" ? "suspended" : "active";
@@ -104,15 +106,17 @@ function PatientDetails() {
           subtitle="View patient profile and care history"
           actions={
             <div className="flex items-center gap-3">
-              <Button
-                variant={patient.status === "active" ? "secondary" : "primary"}
-                size="sm"
-                onClick={handleToggleStatus}
-                disabled={toggling}
-              >
-                {patient.status === "active" ? <Pause size={14} className="mr-1.5" /> : <Play size={14} className="mr-1.5" />}
-                {toggling ? "Updating..." : patient.status === "active" ? "Suspend" : "Activate"}
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant={patient.status === "active" ? "secondary" : "primary"}
+                  size="sm"
+                  onClick={handleToggleStatus}
+                  disabled={toggling}
+                >
+                  {patient.status === "active" ? <Pause size={14} className="mr-1.5" /> : <Play size={14} className="mr-1.5" />}
+                  {toggling ? "Updating..." : patient.status === "active" ? "Suspend" : "Activate"}
+                </Button>
+              )}
               <Link to="/patients" className="flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 transition-colors duration-150">
                 <ArrowLeft size={16} /> Back to Patients
               </Link>

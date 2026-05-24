@@ -16,6 +16,7 @@ import PageContainer from "../common/PageContainer";
 import { useRequest } from "../../hooks/useApi";
 import { api } from "../../lib/api";
 import { useToast } from "../common/Toast";
+import { useIsAdmin } from "../../context/UserContext";
 
 const RequestDetails = () => {
   const { id } = useParams();
@@ -23,6 +24,7 @@ const RequestDetails = () => {
   const toast = useToast();
   const { data: request, loading, error } = useRequest(id);
   const [updating, setUpdating] = useState(false);
+  const isAdmin = useIsAdmin();
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -80,7 +82,7 @@ const RequestDetails = () => {
           subtitle="Track request status and manage care delivery"
           actions={
             <div className="flex items-center gap-2">
-              {showStart && (
+              {isAdmin && showStart && (
                 <button
                   onClick={() => handleStatusChange("in_progress")}
                   disabled={updating}
@@ -89,7 +91,7 @@ const RequestDetails = () => {
                   Start
                 </button>
               )}
-              {showComplete && (
+              {isAdmin && showComplete && (
                 <button
                   onClick={() => handleStatusChange("completed")}
                   disabled={updating}
@@ -98,7 +100,7 @@ const RequestDetails = () => {
                   Complete
                 </button>
               )}
-              {showCancel && (
+              {isAdmin && showCancel && (
                 <button
                   onClick={() => handleStatusChange("canceled")}
                   disabled={updating}

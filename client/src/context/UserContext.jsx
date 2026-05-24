@@ -11,7 +11,11 @@ export function UserProvider({ profile, children }) {
 }
 
 export function useProfile() {
-  const ctx = useContext(UserContext);
-  if (!ctx) throw new Error("useProfile must be used within UserProvider");
-  return ctx;
+  return useContext(UserContext);
+}
+
+// Convenience hook
+export function useIsAdmin() {
+  const profile = useProfile();
+  return profile?.role === "admin" || profile?.role === "moderator";
 }
