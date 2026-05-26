@@ -34,7 +34,7 @@ function TransactionsView() {
   const [statusFilter, setStatusFilter] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const filters = statusFilter ? { status: statusFilter } : {};
-  const { data: transactions, loading } = useTransactions(filters);
+  const { data: transactions, loading, error, refetch } = useTransactions(filters);
 
   const rows = transactions || [];
 
@@ -45,6 +45,15 @@ function TransactionsView() {
       rows.map((tx) => [tx.id, formatDate(tx.date), tx.patient_name || tx.patient || "", tx.provider_name || tx.provider || "", tx.service, `$${parseFloat(tx.amount).toFixed(2)}`, tx.status])
     );
   };
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-red-500 mb-3">Failed to load transactions</p>
+        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div>

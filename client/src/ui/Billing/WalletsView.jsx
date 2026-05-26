@@ -65,11 +65,20 @@ const renderRow = (w) => (
 const formatEgp = (v) => [`${v} EGP`, "Earnings"];
 
 function WalletsView() {
-  const { data: wallets, loading } = useWallets();
+  const { data: wallets, loading, error, refetch } = useWallets();
   const { data: summary, loading: loadingSummary } = useBillingSummary();
   const { data: earningsData, loading: loadingEarnings } = useEarningsOverTime();
   const { data: typeBars, loading: loadingTypes } = useTransactionTypes();
   const rows = wallets || [];
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-red-500 mb-3">Failed to load wallets</p>
+        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
+      </div>
+    );
+  }
 
   const summaryCards = [
     { label: "Total Balance", value: summary ? `${summary.totalBalance.toLocaleString()} EGP` : "—" },

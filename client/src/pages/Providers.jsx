@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import ProvidersFilter from "../ui/Providers/ProvidersFilter";
 import ProvidersTable from "../ui/Providers/ProvidersTable";
 import BaseHeader from "../ui/common/BaseHeader";
@@ -16,7 +17,7 @@ function Providers() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ full_name: "", email: "", specialty: "", credentials: "" });
   const [submitting, setSubmitting] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const queryClient = useQueryClient();
   const toast = useToast();
   const isAdmin = useIsAdmin();
 
@@ -38,7 +39,7 @@ function Providers() {
       toast.success("Provider created successfully.");
       setShowForm(false);
       setFormData({ full_name: "", email: "", specialty: "", credentials: "" });
-      setRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
     } catch (err) {
       toast.error(err.message || "Failed to create provider.");
     } finally {
@@ -125,7 +126,7 @@ function Providers() {
         />
       </div>
 
-      <ProvidersTable key={refreshKey} filters={{ status: statusFilter, search: searchQuery }} />
+      <ProvidersTable filters={{ status: statusFilter, search: searchQuery }} />
     </PageContainer>
   );
 }

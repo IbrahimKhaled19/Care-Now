@@ -40,10 +40,11 @@ function BaseTable({
   header,
   colCount = 1,
   data = [],
+  meta = null,
   rowRenderer,
   showPagination = true,
   currentPage = 1,
-  totalPages = 1,
+  totalPages,
   onPageChange,
   isLoading = false,
   className = "",
@@ -52,11 +53,18 @@ function BaseTable({
   emptyActionLabel,
   onEmptyAction,
 }) {
+  // Server-side pagination: use meta.total for display
+  // Client-side pagination: slice data locally (backward compat)
+  const isServerPaginated = meta !== null;
+  const totalItems = isServerPaginated ? meta.total : data.length;
+  const computedTotalPages = totalPages || Math.max(1, Math.ceil(totalItems / pageSize));
+  const hasMore = isServerPaginated ? meta.hasMore : currentPage < computedTotalPages;
+
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const currentData = Array.isArray(data)
-    ? data.slice(startIndex, endIndex)
-    : [];
+  const currentData = isServerPaginated
+    ? (Array.isArray(data) ? data : [])
+    : (Array.isArray(data) ? data.slice(startIndex, endIndex) : []);
 
   return (
     <div
@@ -85,11 +93,11 @@ function BaseTable({
         </table>
       </div>
 
-      {showPagination && data.length > 0 && (
+      {showPagination && totalItems > 0 && (
         <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
           <span className="text-sm text-gray-500">
-            Showing {startIndex + 1} to {Math.min(endIndex, data.length)} of{" "}
-            {data.length}
+            Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
+            {totalItems}
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -101,11 +109,11 @@ function BaseTable({
               <ChevronLeft size={18} />
             </button>
             <span className="text-sm text-gray-600 px-2">
-              {currentPage} / {totalPages}
+              {currentPage} / {computedTotalPages}
             </span>
             <button
               onClick={() => onPageChange?.(currentPage + 1)}
-              disabled={currentPage === totalPages || isLoading}
+              disabled={!hasMore || isLoading}
               className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
               aria-label="Next page"
             >
@@ -117,5 +125,30 @@ function BaseTable({
     </div>
   );
 }
+
+import PropTypes from "prop-types";
+
+BaseTable.propTypes = {
+  header: PropTypes.node,
+  colCount: PropTypes.number,
+  data: PropTypes.array,
+  meta: PropTypes.shape({
+    total: PropTypes.number,
+    page: PropTypes.number,
+    limit: PropTypes.number,
+    hasMore: PropTypes.bool,
+  }),
+  rowRenderer: PropTypes.func,
+  showPagination: PropTypes.bool,
+  currentPage: PropTypes.number,
+  totalPages: PropTypes.number,
+  onPageChange: PropTypes.func,
+  isLoading: PropTypes.bool,
+  className: PropTypes.string,
+  pageSize: PropTypes.number,
+  emptyMessage: PropTypes.string,
+  emptyActionLabel: PropTypes.string,
+  onEmptyAction: PropTypes.func,
+};
 
 export default BaseTable;

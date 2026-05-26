@@ -15,8 +15,8 @@ router.get("/", requireAuth, attachUser, async (req, res, next) => {
     const params = [];
     let paramIdx = 1;
 
-    // Role-based filtering: providers see only their withdrawals
-    if (req.user?.role === "provider") {
+    // Role-based filtering: providers and patients see only their withdrawals
+    if (req.user?.role === "provider" || req.user?.role === "patient") {
       conditions.push(`w.user_id = $${paramIdx++}`);
       params.push(req.user.id);
     }

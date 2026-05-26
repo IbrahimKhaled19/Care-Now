@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
-const { requireAuth, requireRole, attachUser } = require("../middleware/auth");
-const { validate } = require("../middleware/validate");
+const { requireAuth, requireRole, attachUser, requireOwnership } = require("../middleware/auth");
+const { validate, validateParam } = require("../middleware/validate");
 const { trigger } = require("../lib/novu");
 
 // GET / — list requests with optional filters (role-based)
@@ -44,8 +44,8 @@ router.get("/", requireAuth, attachUser, async (req, res, next) => {
               pu.full_name AS patient_name,
               pru.full_name AS provider_name
        FROM requests r
-       LEFT JOIN users pu ON r.patient_id = pu.id
-       LEFT JOIN users pru ON r.provider_id = pru.id
+       LEFT JOIN users pu ON r.patient_id = pu.id AND pu.deleted_at IS NULL
+       LEFT JOIN users pru ON r.provider_id = pru.id AND pru.deleted_at IS NULL
        ${where}
        ORDER BY r.created_at DESC
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
@@ -59,7 +59,17 @@ router.get("/", requireAuth, attachUser, async (req, res, next) => {
 });
 
 // GET /:id — single request
-router.get("/:id", requireAuth, async (req, res, next) => {
+router.get("/:id", requireAuth, validateParam("integer"), attachUser, requireOwnership(async (req) => {
+  const { rows } = await db.query(
+    "SELECT patient_id, provider_id FROM requests WHERE id = $1",
+    [req.params.id]
+  );
+  if (!rows[0]) return null;
+  // Owner is either the patient or the provider on the request
+  if (rows[0].patient_id === req.user.id) return req.user.id;
+  if (rows[0].provider_id === req.user.id) return req.user.id;
+  return null;
+}), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT r.id, r.service, r.status, r.date, r.created_at,
@@ -67,8 +77,8 @@ router.get("/:id", requireAuth, async (req, res, next) => {
               pu.full_name AS patient_name,
               pru.full_name AS provider_name
        FROM requests r
-       LEFT JOIN users pu ON r.patient_id = pu.id
-       LEFT JOIN users pru ON r.provider_id = pru.id
+       LEFT JOIN users pu ON r.patient_id = pu.id AND pu.deleted_at IS NULL
+       LEFT JOIN users pru ON r.provider_id = pru.id AND pru.deleted_at IS NULL
        WHERE r.id = $1`,
       [req.params.id]
     );
@@ -129,7 +139,7 @@ router.post("/", requireAuth, requireRole("admin"), validate("createRequest"), a
 });
 
 // PUT /:id — update request (admin only)
-router.put("/:id", requireAuth, requireRole("admin"), validate("updateRequest"), async (req, res, next) => {
+router.put("/:id", requireAuth, requireRole("admin"), validateParam("integer"), validate("updateRequest"), async (req, res, next) => {
   try {
     const { patient_id, provider_id, service, status, date } = req.validated;
 
@@ -174,7 +184,7 @@ router.put("/:id", requireAuth, requireRole("admin"), validate("updateRequest"),
 });
 
 // DELETE /:id — delete request (admin only)
-router.delete("/:id", requireAuth, requireRole("admin"), async (req, res, next) => {
+router.delete("/:id", requireAuth, requireRole("admin"), validateParam("integer"), async (req, res, next) => {
   try {
     const { rowCount } = await db.query(
       "DELETE FROM requests WHERE id = $1",
@@ -185,7 +195,43 @@ router.delete("/:id", requireAuth, requireRole("admin"), async (req, res, next) 
       return res.status(404).json({ error: "Request not found" });
     }
 
-    res.json({ message: "Request deleted" });
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /:id — partial update request (admin only, allows null values)
+router.patch("/:id", requireAuth, requireRole("admin"), validateParam("integer"), validate("patchRequest"), async (req, res, next) => {
+  try {
+    const data = req.validated;
+    const fields = ["patient_id", "provider_id", "service", "status", "date"];
+    const setClauses = [];
+    const params = [];
+    let idx = 1;
+
+    for (const f of fields) {
+      if (f in data) {
+        setClauses.push(`${f} = $${idx++}`);
+        params.push(data[f]);
+      }
+    }
+
+    if (setClauses.length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    params.push(req.params.id);
+    const { rows } = await db.query(
+      `UPDATE requests SET ${setClauses.join(", ")} WHERE id = $${idx} RETURNING *`,
+      params
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+
+    res.json(rows[0]);
   } catch (err) {
     next(err);
   }

@@ -83,7 +83,6 @@ const schemas = {
   }),
 
   createTransaction: z.object({
-    id: z.string().optional(),
     patient_id: z.string().min(1).nullish(),
     provider_id: z.string().min(1).nullish(),
     service: z.string().min(1),
@@ -127,6 +126,55 @@ const schemas = {
   }).refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
   }),
+
+  // --- PATCH schemas (all fields optional + nullable) ---
+
+  patchProvider: z.object({
+    full_name: z.string().min(1).max(200).nullable().optional(),
+    email: z.string().email().nullable().optional(),
+    status: z.enum(["active", "suspended"]).nullable().optional(),
+    account_number: z.string().nullable().optional(),
+    specialty: z.string().nullable().optional(),
+    credentials: z.string().nullable().optional(),
+    accept_rate: z.string().nullable().optional(),
+    rating: z.number().min(0).max(5).nullable().optional(),
+    avatar: z.string().nullable().optional(),
+  }).refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  }),
+
+  patchPatient: z.object({
+    full_name: z.string().min(1).max(200).nullable().optional(),
+    email: z.string().email().nullable().optional(),
+    status: z.enum(["active", "suspended"]).nullable().optional(),
+    account_number: z.string().nullable().optional(),
+    location: z.string().nullable().optional(),
+    avatar: z.string().nullable().optional(),
+    date_joined: z.string().nullable().optional(),
+  }).refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  }),
+
+  patchRequest: z.object({
+    patient_id: z.string().min(1).nullable().optional(),
+    provider_id: z.string().min(1).nullable().optional(),
+    service: z.string().min(1).nullable().optional(),
+    status: z.enum(["waiting", "in_progress", "completed", "canceled"]).nullable().optional(),
+    date: z.string().nullable().optional(),
+  }).refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  }),
+
+  patchAdmin: z.object({
+    full_name: z.string().min(1).max(200).nullable().optional(),
+    email: z.string().email().nullable().optional(),
+    role: z.enum(["admin", "moderator"]).nullable().optional(),
+    status: z.enum(["active", "suspended"]).nullable().optional(),
+    account_number: z.string().nullable().optional(),
+    password: z.string().nullable().optional(),
+  }).refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  }),
 };
 
 /**
@@ -164,4 +212,39 @@ function validate(schemaName) {
   };
 }
 
-module.exports = { validate, schemas };
+// ============================================================
+// Route Parameter Validation
+// ============================================================
+
+const paramSchemas = {
+  uuid: z.object({ id: z.string().uuid("Invalid ID format") }),
+  integer: z.object({ id: z.string().regex(/^\d+$/, "ID must be a positive integer").transform(Number) }),
+  text: z.object({ id: z.string().min(1, "ID required") }),
+};
+
+/**
+ * Middleware factory: validate req.params against a named param schema.
+ * @param {string} schemaName - Key in the paramSchemas object ("uuid", "integer", "text")
+ */
+function validateParam(schemaName) {
+  return (req, res, next) => {
+    const schema = paramSchemas[schemaName];
+    if (!schema) {
+      return next();
+    }
+    const result = schema.safeParse(req.params);
+    if (!result.success) {
+      return res.status(400).json({
+        error: "Invalid ID format",
+        details: result.error.issues.map((i) => ({
+          path: i.path.join("."),
+          message: i.message,
+        })),
+      });
+    }
+    req.params = result.data;
+    next();
+  };
+}
+
+module.exports = { validate, schemas, validateParam };

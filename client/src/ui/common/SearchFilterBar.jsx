@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Filter, X } from "lucide-react";
+import { useDebounce } from "../../hooks/useDebounce";
 
 function SearchFilterBar({
   searchPlaceholder = "Search...",
@@ -9,8 +10,23 @@ function SearchFilterBar({
   onSearch,
   statusFilter,
   onFilterChange,
+  debounceMs = 300,
 }) {
   const [showFilter, setShowFilter] = useState(false);
+  const [inputValue, setInputValue] = useState(searchValue || "");
+  const debouncedValue = useDebounce(inputValue, debounceMs);
+
+  // Sync external searchValue prop
+  useEffect(() => {
+    if (searchValue !== undefined && searchValue !== inputValue) {
+      setInputValue(searchValue);
+    }
+  }, [searchValue]);
+
+  // Call onSearch with debounced value
+  useEffect(() => {
+    onSearch?.(debouncedValue);
+  }, [debouncedValue]);
 
   useEffect(() => {
     if (!showFilter) return;
@@ -28,8 +44,8 @@ function SearchFilterBar({
         <input
           type="text"
           placeholder={searchPlaceholder}
-          value={searchValue}
-          onChange={(e) => onSearch?.(e.target.value)}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
           aria-label={searchPlaceholder}
           className="w-full py-2.5 pl-9 pr-4 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-colors duration-150"
         />
@@ -95,5 +111,18 @@ function SearchFilterBar({
     </div>
   );
 }
+
+import PropTypes from "prop-types";
+
+SearchFilterBar.propTypes = {
+  searchPlaceholder: PropTypes.string,
+  filterLabel: PropTypes.string,
+  filterOptions: PropTypes.arrayOf(PropTypes.string),
+  searchValue: PropTypes.string,
+  onSearch: PropTypes.func,
+  statusFilter: PropTypes.string,
+  onFilterChange: PropTypes.func,
+  debounceMs: PropTypes.number,
+};
 
 export default SearchFilterBar;

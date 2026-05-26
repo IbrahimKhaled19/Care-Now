@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
-const { requireAuth, requireRole } = require("../middleware/auth");
-const { validate } = require("../middleware/validate");
+const { requireAuth, requireRole, attachUser, requireOwnership } = require("../middleware/auth");
+const { validate, validateParam } = require("../middleware/validate");
 const { trigger } = require("../lib/novu");
 
 // GET / — list patients with optional filters
@@ -12,6 +12,9 @@ router.get("/", requireAuth, async (req, res, next) => {
     const params = [];
     const conditions = [];
     let paramIdx = 1;
+
+    // Always exclude soft-deleted users
+    conditions.push(`u.deleted_at IS NULL`);
 
     if (status) {
       conditions.push(`u.status = $${paramIdx++}`);
@@ -49,7 +52,10 @@ router.get("/", requireAuth, async (req, res, next) => {
 });
 
 // GET /:id — single patient (join users + patients)
-router.get("/:id", requireAuth, async (req, res, next) => {
+router.get("/:id", requireAuth, validateParam("uuid"), attachUser, requireOwnership(async (req) => {
+  const { rows } = await db.query("SELECT id FROM patients WHERE id = $1", [req.params.id]);
+  return rows[0]?.id;
+}), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT u.id, u.clerk_user_id, u.email, u.full_name, u.role, u.status,
@@ -72,7 +78,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 });
 
 // GET /:id/medical — list medical info for a patient
-router.get("/:id/medical", requireAuth, async (req, res, next) => {
+router.get("/:id/medical", requireAuth, validateParam("uuid"), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT id, category, items FROM patient_medical WHERE patient_id = $1 ORDER BY id`,
@@ -85,7 +91,7 @@ router.get("/:id/medical", requireAuth, async (req, res, next) => {
 });
 
 // GET /:id/transactions — list transactions for a patient
-router.get("/:id/transactions", requireAuth, async (req, res, next) => {
+router.get("/:id/transactions", requireAuth, validateParam("uuid"), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT t.id, u.full_name AS provider_name, t.date, t.service, t.amount, t.status
@@ -154,7 +160,7 @@ router.post("/", requireAuth, requireRole("admin"), validate("createPatient"), a
 });
 
 // PUT /:id — update patient (admin only)
-router.put("/:id", requireAuth, requireRole("admin"), validate("updatePatient"), async (req, res, next) => {
+router.put("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), validate("updatePatient"), async (req, res, next) => {
   try {
     const {
       full_name, email, status, account_number,
@@ -194,6 +200,75 @@ router.put("/:id", requireAuth, requireRole("admin"), validate("updatePatient"),
       await client.query("COMMIT");
 
       res.json({ ...userResult.rows[0], ...patientResult.rows[0] });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /:id — partial update patient (admin only, allows null values)
+router.patch("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), validate("patchPatient"), async (req, res, next) => {
+  try {
+    const data = req.validated;
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+
+      const userFields = ["full_name", "email", "status", "account_number"];
+      const userSet = [];
+      const userParams = [];
+      let idx = 1;
+      for (const f of userFields) {
+        if (f in data) {
+          userSet.push(`${f} = $${idx++}`);
+          userParams.push(data[f]);
+        }
+      }
+      userParams.push(req.params.id);
+
+      let userResult;
+      if (userSet.length > 0) {
+        userResult = await client.query(
+          `UPDATE users SET ${userSet.join(", ")} WHERE id = $${idx} RETURNING *`,
+          userParams
+        );
+        if (userResult.rows.length === 0) {
+          await client.query("ROLLBACK");
+          return res.status(404).json({ error: "Patient not found" });
+        }
+      } else {
+        userResult = await client.query("SELECT * FROM users WHERE id = $1", [req.params.id]);
+      }
+
+      const patFields = ["location", "avatar", "date_joined"];
+      const patSet = [];
+      const patParams = [];
+      idx = 1;
+      for (const f of patFields) {
+        if (f in data) {
+          patSet.push(`${f} = $${idx++}`);
+          patParams.push(data[f]);
+        }
+      }
+      patParams.push(req.params.id);
+
+      let patResult;
+      if (patSet.length > 0) {
+        patResult = await client.query(
+          `UPDATE patients SET ${patSet.join(", ")} WHERE id = $${idx} RETURNING *`,
+          patParams
+        );
+      } else {
+        patResult = await client.query("SELECT * FROM patients WHERE id = $1", [req.params.id]);
+      }
+
+      await client.query("COMMIT");
+      res.json({ ...userResult.rows[0], ...patResult.rows[0] });
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;

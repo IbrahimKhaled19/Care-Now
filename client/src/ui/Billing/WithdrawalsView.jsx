@@ -42,11 +42,20 @@ function WithdrawalsView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [updatingId, setUpdatingId] = useState(null);
   const filters = statusFilter ? { status: statusFilter } : {};
-  const { data: withdrawals, loading, refetch } = useWithdrawals(filters);
+  const { data: withdrawals, loading, error, refetch } = useWithdrawals(filters);
   const toast = useToast();
   const isAdmin = useIsAdmin();
 
   const rows = withdrawals || [];
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-red-500 mb-3">Failed to load withdrawals</p>
+        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
+      </div>
+    );
+  }
 
   const handleExport = () => {
     exportCsv(

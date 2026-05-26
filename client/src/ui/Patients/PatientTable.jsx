@@ -15,9 +15,18 @@ const columns = ["Patient", "Status", "Location", "Date Joined", ""];
 const PatientsTable = ({ filters = {} }) => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const { data: patients, loading, refetch } = usePatients(filters);
+  const { data: patients, loading, error, refetch } = usePatients(filters);
   const toast = useToast();
   const isAdmin = useIsAdmin();
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-red-500 mb-3">Failed to load patients</p>
+        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
+      </div>
+    );
+  }
 
   const handleToggleStatus = async (e, patient) => {
     e.stopPropagation();

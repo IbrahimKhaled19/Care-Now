@@ -28,7 +28,7 @@ const NEXT_STATUS = {
 const CANCELABLE = new Set(["waiting", "in_progress"]);
 
 export const RequestsTable = ({ filters = {} }) => {
-  const { data: requests, loading, refetch } = useRequests(filters);
+  const { data: requests, loading, error, refetch } = useRequests(filters);
   const toast = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState(null);
@@ -36,6 +36,15 @@ export const RequestsTable = ({ filters = {} }) => {
   const ITEMS_PER_PAGE = 10;
   const data = requests || [];
   const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-red-500 mb-3">Failed to load requests</p>
+        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
+      </div>
+    );
+  }
 
   useEffect(() => {
     setCurrentPage(1);

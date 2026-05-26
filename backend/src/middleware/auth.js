@@ -78,4 +78,29 @@ async function attachUser(req, res, next) {
   }
 }
 
-module.exports = { requireAuth, requireRole, attachUser };
+/**
+ * Require ownership of a resource. Must be used after requireAuth and attachUser.
+ * Admins and moderators bypass the ownership check.
+ * @param {function} getOwnerId - async function(req) that returns the owner's user ID for the resource
+ */
+function requireOwnership(getOwnerId) {
+  return async (req, res, next) => {
+    try {
+      // Admins/moderators bypass ownership check
+      if (req.user?.role === "admin" || req.user?.role === "moderator") {
+        return next();
+      }
+
+      const ownerId = await getOwnerId(req);
+      if (!ownerId || ownerId !== req.user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+module.exports = { requireAuth, requireRole, attachUser, requireOwnership };

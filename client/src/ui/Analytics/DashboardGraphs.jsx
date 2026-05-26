@@ -25,9 +25,9 @@ function ChartCard({ title, className, children }) {
 
 function DashboardGraphs({ dateRange }) {
   const [expanded, setExpanded] = useState(false);
-  const { data: requestsData, loading: loadingRequests } = useRequestsOverTime(dateRange);
-  const { data: revenueData, loading: loadingRevenue } = useRevenueByService(dateRange);
-  const { data: topProviders, loading: loadingProviders } = useTopProviders();
+  const { data: requestsData, loading: loadingRequests, error: errorRequests, refetch: refetchRequests } = useRequestsOverTime(dateRange);
+  const { data: revenueData, loading: loadingRevenue, error: errorRevenue, refetch: refetchRevenue } = useRevenueByService(dateRange);
+  const { data: topProviders, loading: loadingProviders, error: errorProviders, refetch: refetchProviders } = useTopProviders();
   const { data: statusDist } = useStatusDistribution(dateRange);
   const { data: stats } = useAnalyticsStats(dateRange);
 
@@ -62,6 +62,8 @@ function DashboardGraphs({ dateRange }) {
         <ChartCard title="Request Volume & Trends" className="lg:col-span-2">
           {loadingRequests ? (
             <Skeleton className="h-[320px] w-full" />
+          ) : errorRequests ? (
+            <div className="text-center py-8"><p className="text-sm text-red-500 mb-2">Failed to load</p><button onClick={refetchRequests} className="text-sm text-teal-600 underline cursor-pointer">Retry</button></div>
           ) : (
             <LinesChart data={linesData.length > 0 ? linesData : undefined} />
           )}
@@ -70,6 +72,8 @@ function DashboardGraphs({ dateRange }) {
         <ChartCard title="Revenue by Service">
           {loadingRevenue ? (
             <Skeleton className="h-[260px] w-full" />
+          ) : errorRevenue ? (
+            <div className="text-center py-8"><p className="text-sm text-red-500 mb-2">Failed to load</p><button onClick={refetchRevenue} className="text-sm text-teal-600 underline cursor-pointer">Retry</button></div>
           ) : (
             <BarsChart data={revenueData.length > 0 ? revenueData : undefined} />
           )}

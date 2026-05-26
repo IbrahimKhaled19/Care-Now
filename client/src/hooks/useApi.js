@@ -1,141 +1,223 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
-export function useApi(path, options = {}) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await api.get(path);
-      setData(result);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [path]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return { data, loading, error, refetch: fetchData };
-}
-
-export function useRequests(filters = {}) {
+/**
+ * Generic list query hook. Returns { data, meta } envelope from API,
+ * flattened to { data, loading, error, refetch } for consumer compat.
+ */
+function useListQuery(key, path, filters = {}, options = {}) {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.search) params.set("search", filters.search);
+  if (filters.page) params.set("page", filters.page);
+  if (filters.limit) params.set("limit", filters.limit);
   const qs = params.toString() ? `?${params.toString()}` : "";
-  return useApi(`/requests${qs}`);
+
+  const result = useQuery({
+    queryKey: [key, filters],
+    queryFn: () => api.get(`${path}${qs}`),
+    ...options,
+  });
+
+  // Handle envelope: if response has { data, meta }, extract data
+  const responseData = result.data?.data !== undefined ? result.data.data : result.data;
+  const meta = result.data?.meta || null;
+
+  return {
+    data: responseData,
+    meta,
+    loading: result.isLoading,
+    error: result.error?.message || null,
+    refetch: result.refetch,
+  };
+}
+
+/**
+ * Generic detail query hook.
+ */
+function useDetailQuery(key, path, id, options = {}) {
+  const result = useQuery({
+    queryKey: [key, id],
+    queryFn: () => api.get(`${path}/${id}`),
+    enabled: !!id,
+    ...options,
+  });
+
+  const responseData = result.data?.data !== undefined ? result.data.data : result.data;
+
+  return {
+    data: responseData,
+    loading: result.isLoading,
+    error: result.error?.message || null,
+    refetch: result.refetch,
+  };
+}
+
+// ============================================================
+// List hooks
+// ============================================================
+
+export function useRequests(filters = {}) {
+  return useListQuery("requests", "/requests", filters);
 }
 
 export function useProviders(filters = {}) {
-  const params = new URLSearchParams();
-  if (filters.status) params.set("status", filters.status);
-  if (filters.search) params.set("search", filters.search);
-  const qs = params.toString() ? `?${params.toString()}` : "";
-  return useApi(`/providers${qs}`);
+  return useListQuery("providers", "/providers", filters);
 }
 
 export function usePatients(filters = {}) {
-  const params = new URLSearchParams();
-  if (filters.status) params.set("status", filters.status);
-  if (filters.search) params.set("search", filters.search);
-  const qs = params.toString() ? `?${params.toString()}` : "";
-  return useApi(`/patients${qs}`);
+  return useListQuery("patients", "/patients", filters);
 }
 
 export function useTransactions(filters = {}) {
-  const params = new URLSearchParams();
-  if (filters.status) params.set("status", filters.status);
-  const qs = params.toString() ? `?${params.toString()}` : "";
-  return useApi(`/transactions${qs}`);
+  return useListQuery("transactions", "/transactions", filters);
 }
 
 export function useWithdrawals(filters = {}) {
-  const params = new URLSearchParams();
-  if (filters.status) params.set("status", filters.status);
-  const qs = params.toString() ? `?${params.toString()}` : "";
-  return useApi(`/withdrawals${qs}`);
+  return useListQuery("withdrawals", "/withdrawals", filters);
 }
 
 export function useWallets() {
-  return useApi("/wallets");
+  return useListQuery("wallets", "/wallets");
 }
 
 export function useAdmins(filters = {}) {
-  const params = new URLSearchParams();
-  if (filters.status) params.set("status", filters.status);
-  if (filters.search) params.set("search", filters.search);
-  const qs = params.toString() ? `?${params.toString()}` : "";
-  return useApi(`/admins${qs}`);
+  return useListQuery("admins", "/admins", filters);
 }
 
+// ============================================================
+// Analytics hooks (semi-static, longer stale time)
+// ============================================================
+
 export function useAnalyticsStats(days = 30) {
-  return useApi(`/analytics/stats?days=${days}`);
+  const result = useQuery({
+    queryKey: ["analytics-stats", days],
+    queryFn: () => api.get(`/analytics/stats?days=${days}`),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useRequestsOverTime(days = 30) {
-  return useApi(`/analytics/requests-over-time?days=${days}`);
+  const result = useQuery({
+    queryKey: ["analytics-requests-over-time", days],
+    queryFn: () => api.get(`/analytics/requests-over-time?days=${days}`),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useRevenueByService(days = 30) {
-  return useApi(`/analytics/revenue-by-service?days=${days}`);
+  const result = useQuery({
+    queryKey: ["analytics-revenue-by-service", days],
+    queryFn: () => api.get(`/analytics/revenue-by-service?days=${days}`),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useStatusDistribution(days = 30) {
-  return useApi(`/analytics/status-distribution?days=${days}`);
+  const result = useQuery({
+    queryKey: ["analytics-status-distribution", days],
+    queryFn: () => api.get(`/analytics/status-distribution?days=${days}`),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useTopProviders() {
-  return useApi(`/analytics/top-providers`);
+  const result = useQuery({
+    queryKey: ["analytics-top-providers"],
+    queryFn: () => api.get("/analytics/top-providers"),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useBillingSummary() {
-  return useApi(`/analytics/billing-summary`);
+  const result = useQuery({
+    queryKey: ["analytics-billing-summary"],
+    queryFn: () => api.get("/analytics/billing-summary"),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useEarningsOverTime() {
-  return useApi(`/analytics/earnings-over-time`);
+  const result = useQuery({
+    queryKey: ["analytics-earnings-over-time"],
+    queryFn: () => api.get("/analytics/earnings-over-time"),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useTransactionTypes() {
-  return useApi(`/analytics/transaction-types`);
+  const result = useQuery({
+    queryKey: ["analytics-transaction-types"],
+    queryFn: () => api.get("/analytics/transaction-types"),
+    staleTime: 60_000,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
+// ============================================================
+// Detail hooks
+// ============================================================
+
 export function useProvider(id) {
-  return useApi(`/providers/${id}`);
+  return useDetailQuery("provider", "/providers", id);
 }
 
 export function useProviderTransactions(id) {
-  return useApi(`/providers/${id}/transactions`);
+  const result = useQuery({
+    queryKey: ["provider-transactions", id],
+    queryFn: () => api.get(`/providers/${id}/transactions`),
+    enabled: !!id,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useProviderRequests(id) {
-  return useApi(`/providers/${id}/requests`);
+  const result = useQuery({
+    queryKey: ["provider-requests", id],
+    queryFn: () => api.get(`/providers/${id}/requests`),
+    enabled: !!id,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useProviderServices(id) {
-  return useApi(`/providers/${id}/services`);
+  const result = useQuery({
+    queryKey: ["provider-services", id],
+    queryFn: () => api.get(`/providers/${id}/services`),
+    enabled: !!id,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function usePatient(id) {
-  return useApi(`/patients/${id}`);
+  return useDetailQuery("patient", "/patients", id);
 }
 
 export function usePatientTransactions(id) {
-  return useApi(`/patients/${id}/transactions`);
+  const result = useQuery({
+    queryKey: ["patient-transactions", id],
+    queryFn: () => api.get(`/patients/${id}/transactions`),
+    enabled: !!id,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function usePatientMedical(id) {
-  return useApi(`/patients/${id}/medical`);
+  const result = useQuery({
+    queryKey: ["patient-medical", id],
+    queryFn: () => api.get(`/patients/${id}/medical`),
+    enabled: !!id,
+  });
+  return { data: result.data, loading: result.isLoading, error: result.error?.message || null, refetch: result.refetch };
 }
 
 export function useRequest(id) {
-  return useApi(`/requests/${id}`);
+  return useDetailQuery("request", "/requests", id);
 }

@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const db = require("../config/db");
-const { requireAuth, attachUser } = require("../middleware/auth");
+const { requireAuth, attachUser, requireOwnership } = require("../middleware/auth");
+const { validateParam } = require("../middleware/validate");
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get("/", requireAuth, attachUser, async (req, res, next) => {
     const { rows } = await db.query(
       `SELECT w.*, u.full_name AS user_name, u.email AS user_email, u.role AS user_role
        FROM wallets w
-       LEFT JOIN users u ON w.user_id = u.id
+       LEFT JOIN users u ON w.user_id = u.id AND u.deleted_at IS NULL
        ${where}
        ORDER BY w.user_id LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       params
@@ -36,12 +37,15 @@ router.get("/", requireAuth, attachUser, async (req, res, next) => {
 });
 
 // GET /:id — get single wallet
-router.get("/:id", requireAuth, async (req, res, next) => {
+router.get("/:id", requireAuth, validateParam("text"), attachUser, requireOwnership(async (req) => {
+  const { rows } = await db.query("SELECT user_id FROM wallets WHERE id = $1", [req.params.id]);
+  return rows[0]?.user_id;
+}), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT w.*, u.full_name AS user_name, u.email AS user_email, u.role AS user_role
        FROM wallets w
-       LEFT JOIN users u ON w.user_id = u.id
+       LEFT JOIN users u ON w.user_id = u.id AND u.deleted_at IS NULL
        WHERE w.id = $1`,
       [req.params.id]
     );

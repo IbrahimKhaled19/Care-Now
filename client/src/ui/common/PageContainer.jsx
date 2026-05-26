@@ -4,4 +4,11 @@ function PageContainer({ children, className = "" }) {
   );
 }
 
+import PropTypes from "prop-types";
+
+PageContainer.propTypes = {
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+};
+
 export default PageContainer;

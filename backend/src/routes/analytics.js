@@ -1,30 +1,28 @@
 const { Router } = require("express");
 const { requireAuth, attachUser } = require("../middleware/auth");
 const db = require("../config/db");
+const { buildFilters } = require("../lib/query-builder");
 
 const router = Router();
 
-// Helper: build WHERE clause for role-based request filtering
+// Role-based filter helpers (using shared buildFilters pattern)
 function requestFilter(user, paramIndex = 2) {
   if (user.role === "provider") return { clause: `AND r.provider_id = $${paramIndex}`, param: user.id };
   if (user.role === "patient") return { clause: `AND r.patient_id = $${paramIndex}`, param: user.id };
   return { clause: "", param: null };
 }
 
-// Helper: build WHERE clause for role-based transaction filtering
 function transactionFilter(user, paramIndex = 1) {
   if (user.role === "provider") return { clause: `AND t.provider_id = $${paramIndex}`, param: user.id };
   if (user.role === "patient") return { clause: `AND t.patient_id = $${paramIndex}`, param: user.id };
   return { clause: "", param: null };
 }
 
-// Helper: build WHERE clause for role-based wallet filtering
 function walletFilter(user) {
   if (user.role === "provider" || user.role === "patient") return { clause: "WHERE w.user_id = $1", param: user.id };
   return { clause: "", param: null };
 }
 
-// Helper: build WHERE clause for role-based withdrawal filtering
 function withdrawalFilter(user) {
   if (user.role === "provider") return { clause: "AND w.user_id = $1", param: user.id };
   return { clause: "", param: null };
@@ -44,38 +42,54 @@ router.get("/stats", requireAuth, attachUser, async (req, res, next) => {
 
     const rf = requestFilter(req.user);
 
-    // Current period
+    // Parallelize all independent queries
     const currentParams = rf.param ? [dateStr, rf.param] : [dateStr];
-    const current = await db.query(
-      `SELECT
-        COUNT(*) as total_requests,
-        COUNT(*) FILTER (WHERE status = 'completed') as completed,
-        COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
-        COUNT(*) FILTER (WHERE status = 'waiting') as waiting,
-        COUNT(*) FILTER (WHERE status = 'canceled') as canceled
-      FROM requests r WHERE r.date >= $1 ${rf.clause}`,
-      currentParams
-    );
-
-    // Previous period
     const prevClause = rf.clause ? rf.clause.replace("$2", "$3") : "";
     const prevParams = rf.param ? [prevStr, dateStr, rf.param] : [prevStr, dateStr];
-    const previous = await db.query(
-      `SELECT
-        COUNT(*) as total_requests,
-        COUNT(*) FILTER (WHERE status = 'completed') as completed
-      FROM requests r WHERE r.date >= $1 AND r.date < $2 ${prevClause}`,
-      prevParams
-    );
 
-    // Active providers (admin only)
-    let providerCount = 0;
-    if (req.user.role === "admin" || req.user.role === "moderator") {
-      const providers = await db.query(
-        `SELECT COUNT(*) FROM users WHERE role = 'provider' AND status = 'active'`
+    const isAdmin = req.user.role === "admin" || req.user.role === "moderator";
+
+    const queries = [
+      // Current period stats
+      db.query(
+        `SELECT
+          COUNT(*) as total_requests,
+          COUNT(*) FILTER (WHERE status = 'completed') as completed,
+          COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
+          COUNT(*) FILTER (WHERE status = 'waiting') as waiting,
+          COUNT(*) FILTER (WHERE status = 'canceled') as canceled
+        FROM requests r WHERE r.date >= $1 ${rf.clause}`,
+        currentParams
+      ),
+      // Previous period stats
+      db.query(
+        `SELECT
+          COUNT(*) as total_requests,
+          COUNT(*) FILTER (WHERE status = 'completed') as completed
+        FROM requests r WHERE r.date >= $1 AND r.date < $2 ${prevClause}`,
+        prevParams
+      ),
+      // Average response time (from request creation to completion)
+      db.query(
+        `SELECT AVG(EXTRACT(EPOCH FROM (r.updated_at - r.created_at))) as avg_seconds
+         FROM requests r
+         WHERE r.status = 'completed' AND r.date >= $1 ${rf.clause}`,
+        currentParams
+      ),
+    ];
+
+    // Add provider count query for admins
+    if (isAdmin) {
+      queries.push(
+        db.query(`SELECT COUNT(*) FROM users WHERE role = 'provider' AND status = 'active'`)
       );
-      providerCount = parseInt(providers.rows[0].count);
     }
+
+    const results = await Promise.all(queries);
+    const current = results[0];
+    const previous = results[1];
+    const avgTime = results[2];
+    const providerCount = isAdmin ? parseInt(results[3].rows[0].count) : 0;
 
     const cur = current.rows[0];
     const prev = previous.rows[0];
@@ -94,12 +108,23 @@ router.get("/stats", requireAuth, attachUser, async (req, res, next) => {
     const rateChange = (parseFloat(completionRate) - parseFloat(prevRate)).toFixed(1);
     const rateChangeStr = rateChange >= 0 ? `+${rateChange}%` : `${rateChange}%`;
 
+    // Real avg response time
+    const avgSeconds = avgTime.rows[0]?.avg_seconds;
+    let avgResponseTime = null;
+    let avgResponseChange = null;
+    if (avgSeconds && avgSeconds > 0) {
+      const mins = Math.floor(avgSeconds / 60);
+      const secs = Math.round(avgSeconds % 60);
+      avgResponseTime = mins > 0 ? `${mins} min ${secs}s` : `${secs}s`;
+      avgResponseChange = "-0s"; // No previous period comparison available
+    }
+
     res.json({
       totalRequests: { value: total, change: requestChange },
       activeProviders: { value: providerCount, change: "+0%" },
       completionRate: { value: `${completionRate}%`, change: rateChangeStr },
-      avgResponseTime: { value: "28 min", change: "-3 min" },
-      patientSatisfaction: { value: parseFloat(completionRate), change: rateChangeStr },
+      avgResponseTime: { value: avgResponseTime, change: avgResponseChange },
+      patientSatisfaction: { value: null, change: null },
     });
   } catch (err) {
     next(err);
@@ -207,11 +232,13 @@ router.get("/top-providers", requireAuth, attachUser, async (req, res, next) => 
       return res.json([]);
     }
 
+    res.set("Cache-Control", "public, max-age=300");
+
     const { rows } = await db.query(
       `SELECT u.full_name AS provider, p.rating, p.visits AS requests
        FROM providers p
        JOIN users u ON p.id = u.id
-       WHERE u.status = 'active'
+       WHERE u.status = 'active' AND u.deleted_at IS NULL
        ORDER BY p.rating DESC, p.visits DESC
        LIMIT 5`
     );
@@ -228,6 +255,7 @@ router.get("/top-providers", requireAuth, attachUser, async (req, res, next) => 
 // GET /api/analytics/billing-summary
 router.get("/billing-summary", requireAuth, attachUser, async (req, res, next) => {
   try {
+    res.set("Cache-Control", "public, max-age=60");
     const wf = walletFilter(req.user);
     const wd = withdrawalFilter(req.user);
 
@@ -258,6 +286,7 @@ router.get("/billing-summary", requireAuth, attachUser, async (req, res, next) =
 // GET /api/analytics/earnings-over-time
 router.get("/earnings-over-time", requireAuth, attachUser, async (req, res, next) => {
   try {
+    res.set("Cache-Control", "public, max-age=300");
     const tf = transactionFilter(req.user);
     const params = tf.param ? [tf.param] : [];
 
@@ -283,6 +312,7 @@ router.get("/earnings-over-time", requireAuth, attachUser, async (req, res, next
 // GET /api/analytics/transaction-types
 router.get("/transaction-types", requireAuth, attachUser, async (req, res, next) => {
   try {
+    res.set("Cache-Control", "public, max-age=300");
     const tf = transactionFilter(req.user);
     const params = tf.param ? [tf.param] : [];
 

@@ -1,6 +1,7 @@
 import TabNavigation from "../ui/common/TabNavigation";
 import RequestsTable from "../ui/Requests/RequestsTable";
-import { useRequests, usePatients, useProviders } from "../hooks/useApi";
+import { useRequests } from "../hooks/useApi";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Plus, X } from "lucide-react";
 import BaseHeader from "../ui/common/BaseHeader";
@@ -20,12 +21,24 @@ const STATUS_FILTER = {
 
 const Requests = () => {
   const [activeRequestTab, setActiveRequestTab] = useState("waiting");
+  const [showForm, setShowForm] = useState(false);
   const { data: allRequests, refetch } = useRequests({});
-  const { data: patients } = usePatients({});
-  const { data: providers } = useProviders({});
+
+  // Lazy fetch: only load patients/providers when form is open
+  const { data: patients } = useQuery({
+    queryKey: ["patients-list"],
+    queryFn: () => api.get("/patients?limit=100"),
+    enabled: showForm,
+    staleTime: 60_000,
+  });
+  const { data: providers } = useQuery({
+    queryKey: ["providers-list"],
+    queryFn: () => api.get("/providers?limit=100"),
+    enabled: showForm,
+    staleTime: 60_000,
+  });
   const toast = useToast();
   const isAdmin = useIsAdmin();
-  const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     patient_id: "",

@@ -43,4 +43,16 @@ function Button({
   );
 }
 
+import PropTypes from "prop-types";
+
+Button.propTypes = {
+  children: PropTypes.node.isRequired,
+  variant: PropTypes.oneOf(["primary", "secondary", "outline", "ghost"]),
+  size: PropTypes.oneOf(["sm", "md", "lg"]),
+  className: PropTypes.string,
+  disabled: PropTypes.bool,
+  type: PropTypes.string,
+  onClick: PropTypes.func,
+};
+
 export default Button;

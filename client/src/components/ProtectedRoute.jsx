@@ -3,8 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import RolePicker from "./RolePicker";
 import { UserProvider } from "../context/UserContext";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+import { api, setTokenProvider } from "../lib/api";
 
 function LoadingScreen() {
   return (
@@ -27,9 +26,13 @@ export default function ProtectedRoute({ children }) {
   const [needsRole, setNeedsRole] = useState(false);
   const [error, setError] = useState(null);
 
+  // Register token provider so api module can attach auth headers
+  useEffect(() => {
+    setTokenProvider(getToken);
+  }, [getToken]);
+
   const syncUser = useCallback(async (role) => {
     try {
-      const token = await getToken();
       const body = {
         email: clerkUser.primaryEmailAddress?.emailAddress,
         full_name: clerkUser.fullName || clerkUser.firstName || "",
@@ -37,18 +40,7 @@ export default function ProtectedRoute({ children }) {
       };
       if (role) body.role = role;
 
-      const res = await fetch(`${API_URL}/users/sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) throw new Error("Failed to sync user profile");
-
-      const data = await res.json();
+      const data = await api.post("/users/sync", body);
 
       if (data.needsRole) {
         setNeedsRole(true);
@@ -59,12 +51,11 @@ export default function ProtectedRoute({ children }) {
       setProfile(data);
       setNeedsRole(false);
     } catch (err) {
-      console.error("User sync error:", err);
-      setError(err.message);
+      setError(err.message || "Failed to sync user profile");
     } finally {
       setLoading(false);
     }
-  }, [clerkUser, getToken]);
+  }, [clerkUser]);
 
   useEffect(() => {
     if (!isLoaded || !clerkUser) return;

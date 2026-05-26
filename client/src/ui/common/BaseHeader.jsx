@@ -16,4 +16,13 @@ function BaseHeader({ title, subtitle, actions, className = "" }) {
   );
 }
 
+import PropTypes from "prop-types";
+
+BaseHeader.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+  actions: PropTypes.node,
+  className: PropTypes.string,
+};
+
 export default BaseHeader;

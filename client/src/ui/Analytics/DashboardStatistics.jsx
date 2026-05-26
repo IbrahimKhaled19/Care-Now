@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useAnalyticsStats } from "../../hooks/useApi";
 import Skeleton from "../common/Skeleton";
@@ -21,7 +20,7 @@ function TrendBadge({ trend, change, invertTrend }) {
 }
 
 function DashboardStatistics({ dateRange }) {
-  const { data: stats, loading } = useAnalyticsStats(dateRange);
+  const { data: stats, loading, error, refetch } = useAnalyticsStats(dateRange);
 
   if (loading) {
     return (
@@ -35,6 +34,15 @@ function DashboardStatistics({ dateRange }) {
           <Skeleton className="h-16" />
           <Skeleton className="h-16" />
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mb-8 text-center py-8">
+        <p className="text-sm text-red-500 mb-3">Failed to load statistics</p>
+        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
       </div>
     );
   }
@@ -56,12 +64,7 @@ function DashboardStatistics({ dateRange }) {
   return (
     <div className="mb-8">
       {/* Hero metric */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="bg-teal-50 border border-teal-100 rounded-xl p-6 mb-4"
-      >
+      <div className="bg-teal-50 border border-teal-100 rounded-xl p-6 mb-4 animate-fadeIn">
         <p className="text-xs font-medium text-teal-700 uppercase tracking-wider mb-2">
           {heroStat.title}
         </p>
@@ -75,17 +78,15 @@ function DashboardStatistics({ dateRange }) {
           />
           <span className="text-xs text-gray-500">{heroStat.period}</span>
         </div>
-      </motion.div>
+      </div>
 
       {/* Secondary metrics strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {secondaryStats.map((stat, idx) => (
-          <motion.div
+          <div
             key={stat.title}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.08 + idx * 0.06 }}
-            className="px-4 py-3"
+            className="px-4 py-3 animate-fadeIn"
+            style={{ animationDelay: `${80 + idx * 60}ms` }}
           >
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">
               {stat.title}
@@ -100,7 +101,7 @@ function DashboardStatistics({ dateRange }) {
                 invertTrend={stat.invertTrend}
               />
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

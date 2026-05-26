@@ -1,27 +1,40 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { ToastProvider } from "./ui/common/Toast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
 import ApiProvider from "./components/ApiProvider";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
-import RequestDetails from "./ui/Requests/RequestDetails";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./pages/AppLayout";
-import Analytics from "./pages/Analytics";
-import Requests from "./pages/Requests";
-import Reports from "./pages/Reports";
-import Providers from "./pages/Providers";
-import Billing from "./pages/Billing";
-import TransactionsView from "./ui/Billing/TransactionsView";
-import WithdrawalsView from "./ui/Billing/WithdrawalsView";
-import WalletsView from "./ui/Billing/WalletsView";
-import Patient from "./pages/Patient.jsx";
-import AdminsManagement from "./pages/AdminsManagement.jsx";
-import ProviderDetails from "./ui/Providers/ProviderDetails.jsx";
-import PatientDetails from "./ui/Patients/PatientDetails.jsx";
+
+// Lazy-loaded pages
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Requests = lazy(() => import("./pages/Requests"));
+const RequestDetails = lazy(() => import("./ui/Requests/RequestDetails"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Providers = lazy(() => import("./pages/Providers"));
+const ProviderDetails = lazy(() => import("./ui/Providers/ProviderDetails.jsx"));
+const Billing = lazy(() => import("./pages/Billing"));
+const TransactionsView = lazy(() => import("./ui/Billing/TransactionsView"));
+const WithdrawalsView = lazy(() => import("./ui/Billing/WithdrawalsView"));
+const WalletsView = lazy(() => import("./ui/Billing/WalletsView"));
+const Patient = lazy(() => import("./pages/Patient.jsx"));
+const PatientDetails = lazy(() => import("./ui/Patients/PatientDetails.jsx"));
+const AdminsManagement = lazy(() => import("./pages/AdminsManagement.jsx"));
+
+function PageSkeleton() {
+  return (
+    <div className="animate-pulse p-6 space-y-4">
+      <div className="h-8 bg-gray-100 rounded w-48" />
+      <div className="h-64 bg-gray-100 rounded-xl" />
+    </div>
+  );
+}
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -46,25 +59,27 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<Navigate replace to="dashboard" />} />
-                <Route path="dashboard" element={<Analytics />} />
-                <Route path="requests" element={<Requests />} />
-                <Route path="requests/:id" element={<RequestDetails />} />
-                <Route path="billing" element={<Billing />}>
-                  <Route index element={<TransactionsView />} />
-                  <Route path="withdrawals" element={<WithdrawalsView />} />
-                  <Route path="wallet" element={<WalletsView />} />
+                <Route element={<ErrorBoundary />}>
+                  <Route index element={<Navigate replace to="dashboard" />} />
+                  <Route path="dashboard" element={<Suspense fallback={<PageSkeleton />}><Analytics /></Suspense>} />
+                  <Route path="requests" element={<Suspense fallback={<PageSkeleton />}><Requests /></Suspense>} />
+                  <Route path="requests/:id" element={<Suspense fallback={<PageSkeleton />}><RequestDetails /></Suspense>} />
+                  <Route path="billing" element={<Suspense fallback={<PageSkeleton />}><Billing /></Suspense>}>
+                    <Route index element={<TransactionsView />} />
+                    <Route path="withdrawals" element={<WithdrawalsView />} />
+                    <Route path="wallet" element={<WalletsView />} />
+                  </Route>
+
+                  {/* Admin/moderator only */}
+                  <Route path="providers" element={<RoleGuard roles={["admin", "moderator"]}><Suspense fallback={<PageSkeleton />}><Providers /></Suspense></RoleGuard>} />
+                  <Route path="providers/:id" element={<RoleGuard roles={["admin", "moderator"]}><Suspense fallback={<PageSkeleton />}><ProviderDetails /></Suspense></RoleGuard>} />
+                  <Route path="patients" element={<RoleGuard roles={["admin", "moderator"]}><Suspense fallback={<PageSkeleton />}><Patient /></Suspense></RoleGuard>} />
+                  <Route path="patients/:id" element={<RoleGuard roles={["admin", "moderator"]}><Suspense fallback={<PageSkeleton />}><PatientDetails /></Suspense></RoleGuard>} />
+                  <Route path="report" element={<RoleGuard roles={["admin", "moderator"]}><Suspense fallback={<PageSkeleton />}><Reports /></Suspense></RoleGuard>} />
+
+                  {/* Admin only */}
+                  <Route path="admins" element={<RoleGuard roles={["admin"]}><Suspense fallback={<PageSkeleton />}><AdminsManagement /></Suspense></RoleGuard>} />
                 </Route>
-
-                {/* Admin/moderator only */}
-                <Route path="providers" element={<RoleGuard roles={["admin", "moderator"]}><Providers /></RoleGuard>} />
-                <Route path="providers/:id" element={<RoleGuard roles={["admin", "moderator"]}><ProviderDetails /></RoleGuard>} />
-                <Route path="patients" element={<RoleGuard roles={["admin", "moderator"]}><Patient /></RoleGuard>} />
-                <Route path="patients/:id" element={<RoleGuard roles={["admin", "moderator"]}><PatientDetails /></RoleGuard>} />
-                <Route path="report" element={<RoleGuard roles={["admin", "moderator"]}><Reports /></RoleGuard>} />
-
-                {/* Admin only */}
-                <Route path="admins" element={<RoleGuard roles={["admin"]}><AdminsManagement /></RoleGuard>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

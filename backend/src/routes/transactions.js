@@ -37,8 +37,8 @@ router.get("/", requireAuth, attachUser, async (req, res, next) => {
               p.full_name AS patient_name,
               pr.full_name AS provider_name
        FROM transactions t
-       LEFT JOIN users p ON t.patient_id = p.id
-       LEFT JOIN users pr ON t.provider_id = pr.id
+       LEFT JOIN users p ON t.patient_id = p.id AND p.deleted_at IS NULL
+       LEFT JOIN users pr ON t.provider_id = pr.id AND pr.deleted_at IS NULL
        ${where}
        ORDER BY t.date DESC
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,

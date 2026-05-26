@@ -23,9 +23,18 @@ const columns = [
 function ProvidersTable({ filters = {} }) {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const { data: providers, loading, refetch } = useProviders(filters);
+  const { data: providers, loading, error, refetch } = useProviders(filters);
   const toast = useToast();
   const isAdmin = useIsAdmin();
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-red-500 mb-3">Failed to load providers</p>
+        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
+      </div>
+    );
+  }
 
   const handleToggleStatus = async (e, provider) => {
     e.stopPropagation();

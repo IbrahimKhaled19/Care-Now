@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
-const { requireAuth, requireRole } = require("../middleware/auth");
-const { validate } = require("../middleware/validate");
+const { requireAuth, requireRole, attachUser, requireOwnership } = require("../middleware/auth");
+const { validate, validateParam } = require("../middleware/validate");
 
 // GET / — list providers with optional filters
 router.get("/", requireAuth, async (req, res, next) => {
@@ -11,6 +11,9 @@ router.get("/", requireAuth, async (req, res, next) => {
     const params = [];
     const conditions = [];
     let paramIdx = 1;
+
+    // Always exclude soft-deleted users
+    conditions.push(`u.deleted_at IS NULL`);
 
     if (status) {
       conditions.push(`u.status = $${paramIdx++}`);
@@ -31,7 +34,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 
     const { rows } = await db.query(
       `SELECT u.id, u.full_name AS name, p.specialty, p.visits, p.credentials,
-              p.accept_rate, p.rating, p.avatar, u.status,
+              p.accept_rate, p.rating, u.status,
               COALESCE(u.avatar_url, p.avatar) AS avatar
        FROM providers p
        JOIN users u ON p.id = u.id
@@ -48,7 +51,10 @@ router.get("/", requireAuth, async (req, res, next) => {
 });
 
 // GET /:id — single provider (join users + providers)
-router.get("/:id", requireAuth, async (req, res, next) => {
+router.get("/:id", requireAuth, validateParam("uuid"), attachUser, requireOwnership(async (req) => {
+  const { rows } = await db.query("SELECT id FROM providers WHERE id = $1", [req.params.id]);
+  return rows[0]?.id;
+}), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT u.id, u.clerk_user_id, u.email, u.full_name, u.role, u.status,
@@ -72,7 +78,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
 });
 
 // GET /:id/services — list services for a provider
-router.get("/:id/services", requireAuth, async (req, res, next) => {
+router.get("/:id/services", requireAuth, validateParam("uuid"), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT id, name, description FROM provider_services WHERE provider_id = $1 ORDER BY name`,
@@ -85,7 +91,7 @@ router.get("/:id/services", requireAuth, async (req, res, next) => {
 });
 
 // GET /:id/transactions — list transactions for a provider
-router.get("/:id/transactions", requireAuth, async (req, res, next) => {
+router.get("/:id/transactions", requireAuth, validateParam("uuid"), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT t.id, u.full_name AS patient_name, t.date, t.service, t.amount, t.status
@@ -102,7 +108,7 @@ router.get("/:id/transactions", requireAuth, async (req, res, next) => {
 });
 
 // GET /:id/requests — list requests for a provider
-router.get("/:id/requests", requireAuth, async (req, res, next) => {
+router.get("/:id/requests", requireAuth, validateParam("uuid"), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT r.id, u.full_name AS patient_name, r.service, r.status, r.date
@@ -161,7 +167,7 @@ router.post("/", requireAuth, requireRole("admin"), validate("createProvider"), 
 });
 
 // PUT /:id — update provider (admin only)
-router.put("/:id", requireAuth, requireRole("admin"), validate("updateProvider"), async (req, res, next) => {
+router.put("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), validate("updateProvider"), async (req, res, next) => {
   try {
     const {
       full_name, email, status, account_number,
@@ -203,6 +209,77 @@ router.put("/:id", requireAuth, requireRole("admin"), validate("updateProvider")
       await client.query("COMMIT");
 
       res.json({ ...userResult.rows[0], ...providerResult.rows[0] });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /:id — partial update provider (admin only, allows null values)
+router.patch("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), validate("patchProvider"), async (req, res, next) => {
+  try {
+    const data = req.validated;
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+
+      // User fields
+      const userFields = ["full_name", "email", "status", "account_number"];
+      const userSet = [];
+      const userParams = [];
+      let idx = 1;
+      for (const f of userFields) {
+        if (f in data) {
+          userSet.push(`${f} = $${idx++}`);
+          userParams.push(data[f]);
+        }
+      }
+      userParams.push(req.params.id);
+
+      let userResult;
+      if (userSet.length > 0) {
+        userResult = await client.query(
+          `UPDATE users SET ${userSet.join(", ")} WHERE id = $${idx} RETURNING *`,
+          userParams
+        );
+        if (userResult.rows.length === 0) {
+          await client.query("ROLLBACK");
+          return res.status(404).json({ error: "Provider not found" });
+        }
+      } else {
+        userResult = await client.query("SELECT * FROM users WHERE id = $1", [req.params.id]);
+      }
+
+      // Provider fields
+      const providerFields = ["specialty", "credentials", "accept_rate", "rating", "avatar"];
+      const provSet = [];
+      const provParams = [];
+      idx = 1;
+      for (const f of providerFields) {
+        if (f in data) {
+          provSet.push(`${f} = $${idx++}`);
+          provParams.push(data[f]);
+        }
+      }
+      provParams.push(req.params.id);
+
+      let provResult;
+      if (provSet.length > 0) {
+        provResult = await client.query(
+          `UPDATE providers SET ${provSet.join(", ")} WHERE id = $${idx} RETURNING *`,
+          provParams
+        );
+      } else {
+        provResult = await client.query("SELECT * FROM providers WHERE id = $1", [req.params.id]);
+      }
+
+      await client.query("COMMIT");
+      res.json({ ...userResult.rows[0], ...provResult.rows[0] });
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;
