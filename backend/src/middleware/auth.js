@@ -6,14 +6,18 @@ const db = require("../config/db");
  * Attaches req.auth (Clerk) and req.user (local DB record).
  */
 function requireAuth(req, res, next) {
-  const auth = getAuth(req);
+  try {
+    const auth = getAuth(req);
 
-  if (!auth.userId) {
-    return res.status(401).json({ error: "Authentication required" });
+    if (!auth.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    req.auth = auth;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or malformed token" });
   }
-
-  req.auth = auth;
-  next();
 }
 
 /**

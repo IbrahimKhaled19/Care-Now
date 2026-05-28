@@ -97,12 +97,32 @@
 
 :root {
   --color-btn: #35a29f;
+  --bg-primary: #fefdfb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f7f7;
+  --text-primary: #2a3e3e;
+  --text-secondary: #4a6a6a;
+  --text-muted: #82a5a5;
+  --border-color: #e0eded;
+  --border-light: #f0f7f7;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1a1f1f;
+  --bg-secondary: #222a2a;
+  --bg-tertiary: #2a3333;
+  --text-primary: #e0eded;
+  --text-secondary: #a8c5c5;
+  --text-muted: #5f8585;
+  --border-color: #3a5454;
+  --border-light: #2a3e3e;
+  --color-btn: #2dd4bf;
 }
 
 body {
   font-family: "Poppins", system-ui, -apple-system, sans-serif;
-  color: #2a3e3e;
-  background: #fefdfb;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -155,6 +175,108 @@ html {
 .animate-fadeIn {
   animation: fadeIn 0.4s ease-out forwards;
   opacity: 0;
+}
+
+/* Dark mode overrides — apply CSS variable colors to common Tailwind classes */
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--bg-secondary) !important;
+}
+
+[data-theme="dark"] .bg-gray-100,
+[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] .bg-cream-50,
+[data-theme="dark"] .bg-cream-100 {
+  background-color: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-gray-800 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .text-gray-400 {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .border-gray-50 {
+  border-color: var(--border-light) !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-50:hover,
+[data-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] .hover\:text-gray-700:hover,
+[data-theme="dark"] .hover\:text-gray-800:hover {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .hover\:border-gray-300:hover {
+  border-color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .bg-teal-50 {
+  background-color: rgba(13, 148, 136, 0.12) !important;
+}
+
+[data-theme="dark"] .text-teal-700 {
+  color: #5eead4 !important;
+}
+
+[data-theme="dark"] .bg-error-50,
+[data-theme="dark"] .bg-red-50 {
+  background-color: rgba(220, 38, 38, 0.12) !important;
+}
+
+[data-theme="dark"] .shadow-sm,
+[data-theme="dark"] .shadow-md,
+[data-theme="dark"] .shadow-lg {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .divide-gray-50 > * + * {
+  border-color: var(--border-light) !important;
+}
+
+[data-theme="dark"] .divide-gray-100 > * + * {
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .recharts-cartesian-grid-horizontal line,
+[data-theme="dark"] .recharts-cartesian-grid-vertical line {
+  stroke: var(--border-light) !important;
+}
+
+[data-theme="dark"] .recharts-text {
+  fill: var(--text-muted) !important;
 }
 
 /* Reduced motion */

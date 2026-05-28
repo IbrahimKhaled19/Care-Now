@@ -50,7 +50,7 @@ const header = (
 );
 
 const renderRow = (w) => (
-  <tr key={w.id} className="hover:bg-gray-50 transition-colors duration-100">
+  <tr key={w.id} className="hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-inset" tabIndex={0} role="row" aria-label={`Wallet ${w.id}`}>
     <td className="px-5 py-3.5 text-sm font-medium text-gray-800">{w.id}</td>
     <td className="px-5 py-3.5 text-sm text-gray-600">{w.user_name || w.name}</td>
     <td className="px-5 py-3.5 text-sm text-gray-600">{w.user_role || w.role}</td>

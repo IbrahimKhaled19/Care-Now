@@ -70,11 +70,22 @@ app.use("/api/users/sync", authLimiter);
 // Body parsing with size limit
 app.use(express.json({ limit: "10kb" }));
 
+// Reject TRACE method (XST prevention)
+app.use((req, res, next) => {
+  if (req.method === "TRACE") return res.status(405).end();
+  next();
+});
+
 // Trust proxy (configurable via env for different deployment topologies)
 app.set("trust proxy", parseInt(process.env.TRUST_PROXY) || 1);
 
-// Clerk auth middleware
-app.use(clerkMiddleware());
+// Clerk auth middleware — wrap to catch malformed token errors
+const clerk = clerkMiddleware();
+app.use((req, res, next) => {
+  Promise.resolve(clerk(req, res, next)).catch(() => {
+    res.status(401).json({ error: "Invalid or malformed token" });
+  });
+});
 
 // --- Routes ---
 
@@ -127,6 +138,18 @@ app.use((req, res) => {
 
 // Error handler: never leak stack traces in production
 app.use((err, req, res, next) => {
+  // Catch malformed JSON body errors — don't leak parser details
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "Invalid JSON" });
+  }
+  // Catch Clerk JWT parse errors (malformed tokens)
+  if (err.message && err.message.includes("Unexpected end of data")) {
+    return res.status(401).json({ error: "Invalid or malformed token" });
+  }
+  // Catch PostgreSQL enum/type validation errors (e.g. status=true)
+  if (err.code === "22P02" || err.code === "22P05") {
+    return res.status(400).json({ error: "Invalid parameter value" });
+  }
   if (process.env.NODE_ENV !== "production") {
     console.error(err.stack);
   }

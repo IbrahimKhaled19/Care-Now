@@ -1,16 +1,23 @@
 const { z } = require("zod");
 
+// Reusable string field that rejects HTML/XML tags to prevent stored XSS
+const safeString = (opts = {}) =>
+  z.string()
+    .min(opts.min ?? 1, opts.minMsg)
+    .max(opts.max ?? 200)
+    .regex(/^[^<>]*$/, "HTML tags are not allowed");
+
 const schemas = {
   createUser: z.object({
     email: z.string().email(),
-    full_name: z.string().min(1).max(200),
+    full_name: safeString(),
     role: z.enum(["admin", "moderator", "provider", "patient"]).optional(),
     status: z.enum(["active", "suspended"]).optional(),
     account_number: z.string().optional(),
   }),
 
   updateUser: z.object({
-    full_name: z.string().min(1).max(200).optional(),
+    full_name: safeString().optional(),
     account_number: z.string().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
@@ -19,7 +26,7 @@ const schemas = {
   createRequest: z.object({
     patient_id: z.string().min(1).nullish(),
     provider_id: z.string().min(1).nullish(),
-    service: z.string().min(1),
+    service: safeString(),
     status: z.enum(["waiting", "in_progress", "completed", "canceled"]).optional(),
     date: z.string().optional(),
   }),
@@ -27,7 +34,7 @@ const schemas = {
   updateRequest: z.object({
     patient_id: z.string().min(1).optional(),
     provider_id: z.string().min(1).nullable().optional(),
-    service: z.string().min(1).optional(),
+    service: safeString().optional(),
     status: z.enum(["waiting", "in_progress", "completed", "canceled"]).optional(),
     date: z.string().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
@@ -36,23 +43,23 @@ const schemas = {
 
   createProvider: z.object({
     email: z.string().email(),
-    full_name: z.string().min(1).max(200),
+    full_name: safeString(),
     clerk_user_id: z.string().optional(),
     account_number: z.string().optional(),
-    specialty: z.string().optional(),
-    credentials: z.string().optional(),
+    specialty: safeString().optional(),
+    credentials: safeString().optional(),
     accept_rate: z.string().optional(),
     rating: z.number().min(0).max(5).optional(),
     avatar: z.string().optional(),
   }),
 
   updateProvider: z.object({
-    full_name: z.string().min(1).max(200).optional(),
+    full_name: safeString().optional(),
     email: z.string().email().optional(),
     status: z.enum(["active", "suspended"]).optional(),
     account_number: z.string().optional(),
-    specialty: z.string().optional(),
-    credentials: z.string().optional(),
+    specialty: safeString().optional(),
+    credentials: safeString().optional(),
     accept_rate: z.string().optional(),
     rating: z.number().min(0).max(5).optional(),
     avatar: z.string().optional(),
@@ -62,20 +69,20 @@ const schemas = {
 
   createPatient: z.object({
     email: z.string().email(),
-    full_name: z.string().min(1).max(200),
+    full_name: safeString(),
     clerk_user_id: z.string().optional(),
     account_number: z.string().optional(),
-    location: z.string().optional(),
+    location: safeString().optional(),
     avatar: z.string().optional(),
     date_joined: z.string().optional(),
   }),
 
   updatePatient: z.object({
-    full_name: z.string().min(1).max(200).optional(),
+    full_name: safeString().optional(),
     email: z.string().email().optional(),
     status: z.enum(["active", "suspended"]).optional(),
     account_number: z.string().optional(),
-    location: z.string().optional(),
+    location: safeString().optional(),
     avatar: z.string().optional(),
     date_joined: z.string().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
@@ -85,7 +92,7 @@ const schemas = {
   createTransaction: z.object({
     patient_id: z.string().min(1).nullish(),
     provider_id: z.string().min(1).nullish(),
-    service: z.string().min(1),
+    service: safeString(),
     amount: z.number().positive(),
     status: z.enum(["completed", "pending", "canceled"]).optional(),
     date: z.string().optional(),
@@ -108,7 +115,7 @@ const schemas = {
 
   createAdmin: z.object({
     email: z.string().email(),
-    full_name: z.string().min(1).max(200),
+    full_name: safeString(),
     clerk_user_id: z.string().optional(),
     role: z.enum(["admin", "moderator"]),
     status: z.enum(["active", "suspended"]).optional(),
@@ -116,7 +123,7 @@ const schemas = {
   }),
 
   updateAdmin: z.object({
-    full_name: z.string().min(1).max(200).optional(),
+    full_name: safeString().optional(),
     email: z.string().email().optional(),
     role: z.enum(["admin", "moderator"]).optional(),
     status: z.enum(["active", "suspended"]).optional(),
@@ -128,12 +135,12 @@ const schemas = {
   // --- PATCH schemas (all fields optional + nullable) ---
 
   patchProvider: z.object({
-    full_name: z.string().min(1).max(200).nullable().optional(),
+    full_name: safeString().nullable().optional(),
     email: z.string().email().nullable().optional(),
     status: z.enum(["active", "suspended"]).nullable().optional(),
     account_number: z.string().nullable().optional(),
-    specialty: z.string().nullable().optional(),
-    credentials: z.string().nullable().optional(),
+    specialty: safeString().nullable().optional(),
+    credentials: safeString().nullable().optional(),
     accept_rate: z.string().nullable().optional(),
     rating: z.number().min(0).max(5).nullable().optional(),
     avatar: z.string().nullable().optional(),
@@ -142,11 +149,11 @@ const schemas = {
   }),
 
   patchPatient: z.object({
-    full_name: z.string().min(1).max(200).nullable().optional(),
+    full_name: safeString().nullable().optional(),
     email: z.string().email().nullable().optional(),
     status: z.enum(["active", "suspended"]).nullable().optional(),
     account_number: z.string().nullable().optional(),
-    location: z.string().nullable().optional(),
+    location: safeString().nullable().optional(),
     avatar: z.string().nullable().optional(),
     date_joined: z.string().nullable().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
@@ -156,7 +163,7 @@ const schemas = {
   patchRequest: z.object({
     patient_id: z.string().min(1).nullable().optional(),
     provider_id: z.string().min(1).nullable().optional(),
-    service: z.string().min(1).nullable().optional(),
+    service: safeString().nullable().optional(),
     status: z.enum(["waiting", "in_progress", "completed", "canceled"]).nullable().optional(),
     date: z.string().nullable().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
@@ -164,7 +171,7 @@ const schemas = {
   }),
 
   patchAdmin: z.object({
-    full_name: z.string().min(1).max(200).nullable().optional(),
+    full_name: safeString().nullable().optional(),
     email: z.string().email().nullable().optional(),
     role: z.enum(["admin", "moderator"]).nullable().optional(),
     status: z.enum(["active", "suspended"]).nullable().optional(),

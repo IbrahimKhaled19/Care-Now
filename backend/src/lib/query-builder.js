@@ -69,12 +69,12 @@ function buildFilters({ status, search, searchFields, roleFilter, paramStart = 1
     params.push(roleFilter.value);
   }
 
-  if (status) {
+  if (status && typeof status === "string" && status.length <= 50) {
     conditions.push(`${statusColumn} = $${idx++}`);
     params.push(status);
   }
 
-  if (search && searchFields && searchFields.length > 0) {
+  if (search && typeof search === "string" && searchFields && searchFields.length > 0) {
     const searchClauses = searchFields.map((f) => `${f} ILIKE $${idx}`);
     conditions.push(`(${searchClauses.join(" OR ")})`);
     params.push(`%${search}%`);

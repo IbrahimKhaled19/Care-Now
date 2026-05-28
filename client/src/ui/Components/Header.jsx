@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { headerContent } from "../../data/content";
+import { useTheme } from "../../context/ThemeContext";
 import Button from "../common/Button";
 
 function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-50 bg-cream-50/95 backdrop-blur-sm border-b border-gray-100">
+    <header className="sticky top-0 z-50 bg-[var(--bg-primary)]/95 backdrop-blur-sm border-b border-[var(--border-color)]">
       <div className="container flex items-center justify-between py-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3">
@@ -29,7 +31,7 @@ function Header() {
               <li key={link}>
                 <a
                   href={`#${link}`}
-                  className="text-sm font-medium text-gray-600 hover:text-teal-700 transition-colors duration-150 capitalize"
+                  className="text-sm font-medium text-[var(--text-secondary)] hover:text-teal-700 transition-colors duration-150 capitalize"
                 >
                   {link}
                 </a>
@@ -40,6 +42,13 @@ function Header() {
 
         {/* Desktop CTA */}
         <div className="hidden lg:flex items-center gap-3">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+            aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          >
+            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
           <SignedOut>
             <Link to="/login">
               <Button variant="ghost" className="px-4 py-2 text-sm">
@@ -63,13 +72,22 @@ function Header() {
         </div>
 
         {/* Mobile Menu Toggle */}
-        <button
-          className="lg:hidden p-2 text-gray-600 hover:text-teal-700"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-        >
-          {menuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="lg:hidden flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="p-2 text-[var(--text-muted)] hover:text-teal-700"
+            aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          >
+            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+          <button
+            className="p-2 text-[var(--text-secondary)] hover:text-teal-700"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+          >
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -79,7 +97,7 @@ function Header() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
-          className="lg:hidden bg-cream-50 border-b border-gray-100 px-6 pb-6"
+          className="lg:hidden bg-[var(--bg-primary)] border-b border-[var(--border-color)] px-6 pb-6"
         >
           <nav>
             <ul className="flex flex-col gap-4">
@@ -87,7 +105,7 @@ function Header() {
                 <li key={link}>
                   <a
                     href={`#${link}`}
-                    className="block py-2 text-base font-medium text-gray-700 hover:text-teal-700 capitalize"
+                    className="block py-2 text-base font-medium text-[var(--text-primary)] hover:text-teal-700 capitalize"
                     onClick={() => setMenuOpen(false)}
                   >
                     {link}

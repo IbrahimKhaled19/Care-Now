@@ -47,7 +47,7 @@ function SearchFilterBar({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           aria-label={searchPlaceholder}
-          className="w-full py-2.5 pl-9 pr-4 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-colors duration-150"
+          className="w-full py-2.5 pl-9 pr-4 border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] bg-[var(--bg-secondary)] focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-colors duration-150"
         />
       </div>
 
@@ -74,7 +74,7 @@ function SearchFilterBar({
               className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 cursor-pointer ${
                 statusFilter
                   ? "bg-teal-50 text-teal-700 border border-teal-200"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:border-[var(--text-muted)]"
               }`}
             >
               <Filter size={16} />

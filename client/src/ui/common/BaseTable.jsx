@@ -71,11 +71,11 @@ function BaseTable({
 
   return (
     <div
-      className={`bg-white rounded-xl border border-gray-100 overflow-hidden ${className}`}
+      className={`bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] overflow-hidden ${className}`}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-100">
+          <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
             {header}
           </thead>
           <tbody className="divide-y divide-gray-50">

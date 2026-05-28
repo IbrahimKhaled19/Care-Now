@@ -116,9 +116,14 @@ router.get("/transactions/export", requireAuth, attachUser, async (req, res, nex
   } catch (err) { next(err); }
 });
 
-// GET /api/providers/export
-router.get("/providers/export", requireAuth, async (req, res, next) => {
+// GET /api/providers/export — admins see all, providers see all (public directory), patients blocked
+router.get("/providers/export", requireAuth, attachUser, async (req, res, next) => {
   try {
+    const user = req.user;
+    if (user?.role === "patient") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
     const conditions = ["u.deleted_at IS NULL"];
     const params = [];
     let idx = 1;
@@ -150,9 +155,14 @@ router.get("/providers/export", requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/patients/export
-router.get("/patients/export", requireAuth, async (req, res, next) => {
+// GET /api/patients/export — admins only (sensitive patient data)
+router.get("/patients/export", requireAuth, attachUser, async (req, res, next) => {
   try {
+    const user = req.user;
+    if (user?.role !== "admin" && user?.role !== "moderator") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
     const conditions = ["u.deleted_at IS NULL"];
     const params = [];
     let idx = 1;

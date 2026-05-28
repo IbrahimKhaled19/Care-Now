@@ -19,6 +19,7 @@ function LoadingScreen() {
 }
 
 export default function ProtectedRoute({ children }) {
+  // eslint-disable-next-line no-unused-vars
   const { getToken } = useAuth();
   const { user: clerkUser, isLoaded } = useUser();
   const [profile, setProfile] = useState(null);
@@ -26,31 +27,34 @@ export default function ProtectedRoute({ children }) {
   const [needsRole, setNeedsRole] = useState(false);
   const [error, setError] = useState(null);
 
-  const syncUser = useCallback(async (role) => {
-    try {
-      const body = {
-        email: clerkUser.primaryEmailAddress?.emailAddress,
-        full_name: clerkUser.fullName || clerkUser.firstName || "",
-        avatar_url: clerkUser.imageUrl || null,
-      };
-      if (role) body.role = role;
+  const syncUser = useCallback(
+    async (role) => {
+      try {
+        const body = {
+          email: clerkUser.primaryEmailAddress?.emailAddress,
+          full_name: clerkUser.fullName || clerkUser.firstName || "",
+          avatar_url: clerkUser.imageUrl || null,
+        };
+        if (role) body.role = role;
 
-      const data = await api.post("/users/sync", body);
+        const data = await api.post("/users/sync", body);
 
-      if (data.needsRole) {
-        setNeedsRole(true);
+        if (data.needsRole) {
+          setNeedsRole(true);
+          setLoading(false);
+          return;
+        }
+
+        setProfile(data);
+        setNeedsRole(false);
+      } catch (err) {
+        setError(err.message || "Failed to sync user profile");
+      } finally {
         setLoading(false);
-        return;
       }
-
-      setProfile(data);
-      setNeedsRole(false);
-    } catch (err) {
-      setError(err.message || "Failed to sync user profile");
-    } finally {
-      setLoading(false);
-    }
-  }, [clerkUser]);
+    },
+    [clerkUser],
+  );
 
   useEffect(() => {
     if (!isLoaded || !clerkUser) return;
@@ -74,7 +78,12 @@ export default function ProtectedRoute({ children }) {
           <div className="min-h-screen bg-cream-50 flex items-center justify-center px-4">
             <div className="text-center">
               <p className="text-sm text-red-500">{error}</p>
-              <button onClick={() => syncUser()} className="mt-3 text-sm text-teal-600 underline">Retry</button>
+              <button
+                onClick={() => syncUser()}
+                className="mt-3 text-sm text-teal-600 underline"
+              >
+                Retry
+              </button>
             </div>
           </div>
         ) : needsRole ? (
