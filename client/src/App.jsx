@@ -12,36 +12,37 @@ import Login from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./pages/AppLayout";
+import { dark, neobrutalism } from "@clerk/ui/themes";
 
-const clerkDark = {
-  elements: {
-    rootBox: "w-full",
-    card: "bg-[#222a2a] rounded-xl border border-[#3a5454] shadow-none",
-    headerTitle: "text-[#e0eded]",
-    headerSubtitle: "text-[#a8c5c5]",
-    formButtonPrimary: "bg-teal-600 hover:bg-teal-700 text-white",
-    footerActionLink: "text-teal-400 hover:text-teal-300",
-    formFieldLabel: "text-[#a8c5c5]",
-    formFieldInput: "bg-[#2a3333] border-[#3a5454] text-[#e0eded]",
-    identityPreviewText: "text-[#e0eded]",
-    identityPreviewEditButton: "text-teal-400",
-    dividerLine: "bg-[#3a5454]",
-    dividerText: "text-[#5f8585]",
-    socialButtonsBlockButton: "bg-[#2a3333] border-[#3a5454] text-[#e0eded]",
-    footerActionText: "text-[#a8c5c5]",
-  },
-};
+// const clerkDark = {
+//   elements: {
+//     rootBox: "w-full",
+//     card: "bg-[#222a2a] rounded-xl border border-[#3a5454] shadow-none",
+//     headerTitle: "text-[#e0eded]",
+//     headerSubtitle: "text-[#a8c5c5]",
+//     formButtonPrimary: "bg-teal-600 hover:bg-teal-700 text-white",
+//     footerActionLink: "text-teal-400 hover:text-teal-300",
+//     formFieldLabel: "text-[#a8c5c5]",
+//     formFieldInput: "bg-[#2a3333] border-[#3a5454] text-[#e0eded]",
+//     identityPreviewText: "text-[#e0eded]",
+//     identityPreviewEditButton: "text-teal-400",
+//     dividerLine: "bg-[#3a5454]",
+//     dividerText: "text-[#5f8585]",
+//     socialButtonsBlockButton: "bg-[#2a3333] border-[#3a5454] text-[#e0eded]",
+//     footerActionText: "text-[#a8c5c5]",
+//   },
+// };
 
-const clerkLight = {
-  elements: {
-    rootBox: "w-full",
-    card: "bg-white rounded-xl border border-gray-100 shadow-none",
-    headerTitle: "text-gray-800",
-    headerSubtitle: "text-gray-500",
-    formButtonPrimary: "bg-teal-600 hover:bg-teal-700 text-white",
-    footerActionLink: "text-teal-600 hover:text-teal-700",
-  },
-};
+// const clerkLight = {
+//   elements: {
+//     rootBox: "w-full",
+//     card: "bg-white rounded-xl border border-gray-100 shadow-none",
+//     headerTitle: "text-gray-800",
+//     headerSubtitle: "text-gray-500",
+//     formButtonPrimary: "bg-teal-600 hover:bg-teal-700 text-white",
+//     footerActionLink: "text-teal-600 hover:text-teal-700",
+//   },
+// };
 
 // Lazy-loaded pages
 const Analytics = lazy(() => import("./pages/Analytics"));
@@ -78,14 +79,25 @@ if (!PUBLISHABLE_KEY) {
 function App() {
   // Read theme from localStorage directly — useTheme() can't be called here
   // because ThemeProvider is inside ClerkProvider
-  const theme = typeof window !== "undefined"
-    ? localStorage.getItem("carenow-theme") || "light"
-    : "light";
+  const theme =
+    typeof window !== "undefined"
+      ? localStorage.getItem("carenow-theme") || "light"
+      : "light";
 
   return (
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
-      appearance={theme === "dark" ? clerkDark : clerkLight}
+      appearance={{
+        baseTheme: theme === "dark" ? dark : null,
+        variables: {
+          colorPrimary: "#14b8a6", // Tailwind's teal-600
+          colorPrimaryHover: "#0d9488", // Tailwind's teal-700
+          colorBackground: "var(--bg-primary)",
+          colorBackgroundSecondary: "var(--bg-secondary)",
+          colorText: "var(--text-primary)",
+          colorTextSecondary: "var(--text-secondary)",
+        },
+      }}
     >
       <ThemeProvider>
         <ApiProvider>
