@@ -1,12 +1,63 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
 
 const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
+  const dialogRef = useRef(null);
+  const triggerRef = useRef(null);
+
   useEffect(() => {
     if (!isOpen) return;
-    const handleEscape = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+
+    // Store the element that had focus before dialog opened
+    triggerRef.current = document.activeElement;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      // Focus trap: Tab/Shift+Tab cycles within dialog
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Focus the first focusable element in the dialog
+    requestAnimationFrame(() => {
+      if (dialogRef.current) {
+        const first = dialogRef.current.querySelector(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (first) first.focus();
+      }
+    });
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      // Restore focus to trigger element
+      if (triggerRef.current && triggerRef.current.focus) {
+        triggerRef.current.focus();
+      }
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -20,6 +71,7 @@ const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="w-full max-w-sm bg-white rounded-xl border border-gray-100 shadow-lg p-6 mx-4"
         onClick={(e) => e.stopPropagation()}
       >

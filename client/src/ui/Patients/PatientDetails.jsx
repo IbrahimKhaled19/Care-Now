@@ -52,7 +52,7 @@ function PatientDetails() {
     const newStatus = patient.status === "active" ? "suspended" : "active";
     setToggling(true);
     try {
-      await api.put(`/patients/${id}`, { status: newStatus });
+      await api.patch(`/patients/${id}`, { status: newStatus });
       toast.success(`Patient ${newStatus === "suspended" ? "suspended" : "activated"} successfully.`);
       refetch();
     } catch (err) {

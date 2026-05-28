@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { Outlet } from "react-router-dom";
 import SideBar from "../ui/Components/SideBar";
 
 function AppLayout() {

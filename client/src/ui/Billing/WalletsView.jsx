@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   LineChart,
   Line,
@@ -64,12 +65,16 @@ const renderRow = (w) => (
 
 const formatEgp = (v) => [`${v} EGP`, "Earnings"];
 
+const EMPTY = [];
+const ITEMS_PER_PAGE = 10;
+
 function WalletsView() {
-  const { data: wallets, loading, error, refetch } = useWallets();
+  const [currentPage, setCurrentPage] = useState(1);
+  const { data: wallets, meta, loading, error, refetch } = useWallets({ page: currentPage, limit: ITEMS_PER_PAGE });
   const { data: summary, loading: loadingSummary } = useBillingSummary();
   const { data: earningsData, loading: loadingEarnings } = useEarningsOverTime();
   const { data: typeBars, loading: loadingTypes } = useTransactionTypes();
-  const rows = wallets || [];
+  const rows = wallets || EMPTY;
 
   if (error) {
     return (
@@ -159,8 +164,10 @@ function WalletsView() {
           header={header}
           colCount={walletColumns.length}
           data={rows}
-          currentPage={1}
-          totalPages={1}
+          meta={meta}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          pageSize={ITEMS_PER_PAGE}
           rowRenderer={renderRow}
           isLoading={loading}
         />

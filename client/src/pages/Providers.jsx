@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import ProvidersFilter from "../ui/Providers/ProvidersFilter";
 import ProvidersTable from "../ui/Providers/ProvidersTable";
@@ -11,9 +12,21 @@ import { UserPlus, X } from "lucide-react";
 import { useIsAdmin } from "../context/UserContext";
 
 function Providers() {
-  const [activeTab, setActiveTab] = useState("all-providers");
-  const [statusFilter, setStatusFilter] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "all-providers");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || null);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+
+  const updateUrl = (updates) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(updates)) {
+        if (v) next.set(k, v);
+        else next.delete(k);
+      }
+      return next;
+    });
+  };
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ full_name: "", email: "", specialty: "", credentials: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -66,8 +79,9 @@ function Providers() {
         <form onSubmit={handleSubmit} className="mt-5 bg-white rounded-xl border border-gray-100 p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+              <label htmlFor="provider-full_name" className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
               <input
+                id="provider-full_name"
                 name="full_name"
                 value={formData.full_name}
                 onChange={handleChange}
@@ -77,8 +91,9 @@ function Providers() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <label htmlFor="provider-email" className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
               <input
+                id="provider-email"
                 name="email"
                 type="email"
                 value={formData.email}
@@ -89,8 +104,9 @@ function Providers() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
+              <label htmlFor="provider-specialty" className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
               <input
+                id="provider-specialty"
                 name="specialty"
                 value={formData.specialty}
                 onChange={handleChange}
@@ -99,8 +115,9 @@ function Providers() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Credentials</label>
+              <label htmlFor="provider-credentials" className="block text-sm font-medium text-gray-700 mb-1">Credentials</label>
               <input
+                id="provider-credentials"
                 name="credentials"
                 value={formData.credentials}
                 onChange={handleChange}
@@ -121,8 +138,8 @@ function Providers() {
         <ProvidersFilter
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          onSearch={setSearchQuery}
-          onFilterChange={setStatusFilter}
+          onSearch={(v) => { setSearchQuery(v); updateUrl({ search: v }); }}
+          onFilterChange={(v) => { setStatusFilter(v); updateUrl({ status: v }); }}
         />
       </div>
 

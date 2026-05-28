@@ -52,6 +52,9 @@ function BaseTable({
   emptyMessage,
   emptyActionLabel,
   onEmptyAction,
+  sortKey,
+  sortOrder,
+  onSort,
 }) {
   // Server-side pagination: use meta.total for display
   // Client-side pagination: slice data locally (backward compat)
@@ -149,6 +152,9 @@ BaseTable.propTypes = {
   emptyMessage: PropTypes.string,
   emptyActionLabel: PropTypes.string,
   onEmptyAction: PropTypes.func,
+  sortKey: PropTypes.string,
+  sortOrder: PropTypes.oneOf(["asc", "desc"]),
+  onSort: PropTypes.func,
 };
 
 export default BaseTable;

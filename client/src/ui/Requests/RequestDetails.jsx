@@ -9,16 +9,22 @@ import {
 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import StateItem from "./StateItem";
 import ProfileCard from "./ProfileCard";
 import BaseHeader from "../common/BaseHeader";
 import PageContainer from "../common/PageContainer";
+import Skeleton from "../common/Skeleton";
 import { useRequest } from "../../hooks/useApi";
 import { api } from "../../lib/api";
 import { useToast } from "../common/Toast";
 import { useIsAdmin } from "../../context/UserContext";
-import { useProviders } from "../../hooks/useApi";
-import { usePatients } from "../../hooks/useApi";
+
+const STATUS_STEPS = [
+  { key: "waiting", label: "Waiting", icon: <Clock size={16} /> },
+  { key: "in_progress", label: "In Progress", icon: <Truck size={16} /> },
+  { key: "completed", label: "Completed", icon: <CheckCircle size={16} /> },
+];
 
 const RequestDetails = () => {
   const { id } = useParams();
@@ -27,16 +33,23 @@ const RequestDetails = () => {
   const { data: request, loading, error } = useRequest(id);
   const [updating, setUpdating] = useState(false);
   const isAdmin = useIsAdmin();
-  const { data: providers } = useProviders();
-  const { data: patients } = usePatients();
 
-  const provider = providers?.find((p) => p.id === request?.provider_id);
-  const patient = patients?.find((p) => p.id === request?.patient_id);
+  // Fetch individual patient/provider for avatars (not full lists)
+  const { data: patient } = useQuery({
+    queryKey: ["patient", request?.patient_id],
+    queryFn: () => api.get(`/patients/${request.patient_id}`),
+    enabled: !!request?.patient_id,
+  });
+  const { data: provider } = useQuery({
+    queryKey: ["provider", request?.provider_id],
+    queryFn: () => api.get(`/providers/${request.provider_id}`),
+    enabled: !!request?.provider_id,
+  });
 
   const handleStatusChange = async (newStatus) => {
     try {
       setUpdating(true);
-      await api.put(`/requests/${id}`, { status: newStatus });
+      await api.patch(`/requests/${id}`, { status: newStatus });
       toast.success(
         `Request ${newStatus === "in_progress" ? "started" : newStatus === "completed" ? "completed" : "canceled"}`,
       );
@@ -49,17 +62,22 @@ const RequestDetails = () => {
   };
 
   const patientData = request
-    ? { name: request.patient_name, email: "", location: "", dateJoined: "" , avatar: patient?.avatar }
+    ? { name: request.patient_name, email: "", location: "", dateJoined: "", avatar: patient?.avatar }
     : null;
   const providerData = request
-    ? { name: request.provider_name, email: "", location: "", dateJoined: "" , avatar: provider?.avatar }
+    ? { name: request.provider_name, email: "", location: "", dateJoined: "", avatar: provider?.avatar }
     : null;
 
   if (loading) {
     return (
       <PageContainer>
-        <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-gray-500">Loading request details...</p>
+        <div className="space-y-5">
+          <Skeleton className="h-8 w-48" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+          <Skeleton className="h-24" />
         </div>
       </PageContainer>
     );
@@ -70,10 +88,7 @@ const RequestDetails = () => {
       <PageContainer>
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <p className="text-sm text-gray-500">Request not found.</p>
-          <Link
-            to="/requests"
-            className="text-sm font-medium text-teal-600 hover:text-teal-800"
-          >
+          <Link to="/requests" className="text-sm font-medium text-teal-600 hover:text-teal-800">
             Back to Requests
           </Link>
         </div>
@@ -85,46 +100,35 @@ const RequestDetails = () => {
   const showStart = status === "waiting";
   const showComplete = status === "in_progress";
   const showCancel = status === "waiting" || status === "in_progress";
+  const currentStepIdx = STATUS_STEPS.findIndex((s) => s.key === status);
 
   return (
     <PageContainer>
       <div className="border-b border-gray-100 pb-5 mb-8">
         <BaseHeader
           title="Request Details"
-          subtitle="Track request status and manage care delivery"
+          subtitle={`Service: ${request.service || "N/A"}`}
           actions={
             <div className="flex items-center gap-2">
               {isAdmin && showStart && (
-                <button
-                  onClick={() => handleStatusChange("in_progress")}
-                  disabled={updating}
-                  className="text-sm font-medium px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors disabled:opacity-50 cursor-pointer"
-                >
+                <button onClick={() => handleStatusChange("in_progress")} disabled={updating}
+                  className="text-sm font-medium px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors disabled:opacity-50 cursor-pointer">
                   Start
                 </button>
               )}
               {isAdmin && showComplete && (
-                <button
-                  onClick={() => handleStatusChange("completed")}
-                  disabled={updating}
-                  className="text-sm font-medium px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors disabled:opacity-50 cursor-pointer"
-                >
+                <button onClick={() => handleStatusChange("completed")} disabled={updating}
+                  className="text-sm font-medium px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors disabled:opacity-50 cursor-pointer">
                   Complete
                 </button>
               )}
               {isAdmin && showCancel && (
-                <button
-                  onClick={() => handleStatusChange("canceled")}
-                  disabled={updating}
-                  className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
-                >
+                <button onClick={() => handleStatusChange("canceled")} disabled={updating}
+                  className="text-sm font-medium px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer">
                   Cancel
                 </button>
               )}
-              <Link
-                to="/requests"
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 transition-colors duration-150"
-              >
+              <Link to="/requests" className="flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 transition-colors duration-150">
                 <ArrowLeft size={16} />
                 Back to Requests
               </Link>
@@ -138,56 +142,68 @@ const RequestDetails = () => {
         <ProfileCard profile={providerData} type="provider" />
       </div>
 
+      {/* Status timeline — real status from DB */}
       <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">
-          Current State
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">Status</h3>
         <div className="flex items-center gap-3 flex-wrap">
-          <StateItem icon={<CheckCircle size={16} />} label="Accepted" active />
-          <ArrowIcon />
-          <StateItem icon={<Truck size={16} />} label="On the way" />
-          <ArrowIcon />
-          <StateItem icon={<MapPin size={16} />} label="Arrived" />
-          <ArrowIcon />
-          <StateItem icon={<Clock size={16} />} label="In progress" />
-          <ArrowIcon />
-          <StateItem icon={<Clipboard size={16} />} label="Take Notes" />
+          {STATUS_STEPS.map((step, idx) => (
+            <span key={step.key} className="flex items-center gap-3">
+              <StateItem icon={step.icon} label={step.label} active={idx <= currentStepIdx} />
+              {idx < STATUS_STEPS.length - 1 && <ArrowIcon />}
+            </span>
+          ))}
         </div>
       </div>
 
+      {/* Request info — real data or N/A */}
       <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Accepted</h4>
-        <div className="flex items-center justify-between bg-teal-50 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
-              <MapPin size={20} className="text-teal-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">3.2 km</span> &middot;{" "}
-                <span className="font-semibold">12 mins</span> ETA
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Al Khalyfa Al Zafer St
-              </p>
-            </div>
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">Details</h4>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-gray-500">Service</span>
+            <p className="text-gray-700 font-medium">{request.service || "N/A"}</p>
           </div>
-          <a
-            href="#"
-            className="flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-800 transition-colors duration-150"
-          >
-            View map
-            <ArrowRight size={14} />
-          </a>
+          <div>
+            <span className="text-gray-500">Date</span>
+            <p className="text-gray-700 font-medium">{request.date || "N/A"}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Created</span>
+            <p className="text-gray-700 font-medium">{request.created_at ? new Date(request.created_at).toLocaleDateString() : "N/A"}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Request ID</span>
+            <p className="text-gray-700 font-medium">#{request.id}</p>
+          </div>
         </div>
       </div>
 
+      {/* Location — show if available, otherwise N/A */}
+      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">Location</h4>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
+            <MapPin size={20} className="text-teal-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-700">{request.location || "No location assigned"}</p>
+            {request.location_url ? (
+              <a href={request.location_url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-800 transition-colors duration-150 mt-1">
+                View map <ArrowRight size={14} />
+              </a>
+            ) : (
+              <span className="text-xs text-gray-400 mt-1 block">Map not available</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Notes — real data or empty state */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <h4 className="text-sm font-semibold text-gray-700 mb-3">Notes</h4>
         <p className="text-sm text-gray-600 leading-relaxed">
-          I need someone to come now to take blood samples for routine lab tests
-          (CBC and blood sugar). Please make sure the samples are labeled
-          correctly and handled carefully for delivery to the lab.
+          {request.notes || "No notes added yet."}
         </p>
       </div>
     </PageContainer>

@@ -5,6 +5,10 @@ const { buildFilters } = require("../lib/query-builder");
 
 const router = Router();
 
+function parseDays(queryDays) {
+  return Math.min(365, Math.max(1, parseInt(queryDays) || 30));
+}
+
 // Role-based filter helpers (using shared buildFilters pattern)
 function requestFilter(user, paramIndex = 2) {
   if (user.role === "provider") return { clause: `AND r.provider_id = $${paramIndex}`, param: user.id };
@@ -31,7 +35,7 @@ function withdrawalFilter(user) {
 // GET /api/analytics/stats?days=30
 router.get("/stats", requireAuth, attachUser, async (req, res, next) => {
   try {
-    const days = parseInt(req.query.days) || 30;
+    const days = parseDays(req.query.days);
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateStr = dateThreshold.toISOString().split("T")[0];
@@ -134,7 +138,7 @@ router.get("/stats", requireAuth, attachUser, async (req, res, next) => {
 // GET /api/analytics/requests-over-time?days=30
 router.get("/requests-over-time", requireAuth, attachUser, async (req, res, next) => {
   try {
-    const days = parseInt(req.query.days) || 30;
+    const days = parseDays(req.query.days);
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateStr = dateThreshold.toISOString().split("T")[0];
@@ -171,7 +175,7 @@ router.get("/requests-over-time", requireAuth, attachUser, async (req, res, next
 // GET /api/analytics/revenue-by-service?days=30
 router.get("/revenue-by-service", requireAuth, attachUser, async (req, res, next) => {
   try {
-    const days = parseInt(req.query.days) || 30;
+    const days = parseDays(req.query.days);
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateStr = dateThreshold.toISOString().split("T")[0];
@@ -200,7 +204,7 @@ router.get("/revenue-by-service", requireAuth, attachUser, async (req, res, next
 // GET /api/analytics/status-distribution?days=30
 router.get("/status-distribution", requireAuth, attachUser, async (req, res, next) => {
   try {
-    const days = parseInt(req.query.days) || 30;
+    const days = parseDays(req.query.days);
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateStr = dateThreshold.toISOString().split("T")[0];

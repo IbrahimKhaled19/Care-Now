@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import RolePicker from "./RolePicker";
 import { UserProvider } from "../context/UserContext";
-import { api, setTokenProvider } from "../lib/api";
+import { api } from "../lib/api";
 
 function LoadingScreen() {
   return (
@@ -25,11 +25,6 @@ export default function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true);
   const [needsRole, setNeedsRole] = useState(false);
   const [error, setError] = useState(null);
-
-  // Register token provider so api module can attach auth headers
-  useEffect(() => {
-    setTokenProvider(getToken);
-  }, [getToken]);
 
   const syncUser = useCallback(async (role) => {
     try {

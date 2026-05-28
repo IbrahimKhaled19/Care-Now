@@ -8,7 +8,14 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      retry: 1,
+      retry: (failureCount, error) => {
+        // Don't retry on 401 — redirect to login
+        if (error?.message?.includes("401") || error?.message?.includes("Unauthorized")) {
+          window.location.href = "/login";
+          return false;
+        }
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: false,
     },
   },

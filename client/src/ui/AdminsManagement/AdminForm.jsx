@@ -18,12 +18,13 @@ const AdminForm = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="admin-fullName" className="block text-sm font-medium text-gray-700 mb-1.5">
               Full Name <span className="text-error-500">*</span>
             </label>
             <div className="relative">
               <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
+                id="admin-fullName"
                 placeholder="Enter name"
                 {...register("fullName", { required: "Full name is required" })}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-colors duration-150"
@@ -36,12 +37,13 @@ const AdminForm = ({
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="admin-email" className="block text-sm font-medium text-gray-700 mb-1.5">
               Email <span className="text-error-500">*</span>
             </label>
             <div className="relative">
               <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
+                id="admin-email"
                 placeholder="Enter email"
                 {...register("email", {
                   required: "Email is required",
@@ -57,7 +59,7 @@ const AdminForm = ({
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="admin-password" className="block text-sm font-medium text-gray-700 mb-1.5">
               Password {!editingAdmin && <span className="text-error-500">*</span>}
             </label>
             <div className="relative">
@@ -71,6 +73,7 @@ const AdminForm = ({
                 {passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
               <input
+                id="admin-password"
                 placeholder={editingAdmin ? "Leave blank to keep" : "Enter password"}
                 type={passwordVisible ? "text" : "password"}
                 {...register("password", {
@@ -87,12 +90,13 @@ const AdminForm = ({
 
           {/* Account Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="admin-accountNumber" className="block text-sm font-medium text-gray-700 mb-1.5">
               Account Number <span className="text-error-500">*</span>
             </label>
             <div className="relative">
               <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
+                id="admin-accountNumber"
                 placeholder="Enter account number"
                 {...register("accountNumber", { required: "Account number is required" })}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-colors duration-150"
@@ -105,12 +109,13 @@ const AdminForm = ({
 
           {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="admin-role" className="block text-sm font-medium text-gray-700 mb-1.5">
               Role <span className="text-error-500">*</span>
             </label>
             <div className="relative">
               <Award size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <select
+                id="admin-role"
                 {...register("role", { required: "Role is required" })}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-colors duration-150 appearance-none"
               >
@@ -127,12 +132,13 @@ const AdminForm = ({
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="admin-status" className="block text-sm font-medium text-gray-700 mb-1.5">
               Status
             </label>
             <div className="relative">
               <Flag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <select
+                id="admin-status"
                 {...register("state")}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-colors duration-150 appearance-none"
               >

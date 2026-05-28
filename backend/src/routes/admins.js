@@ -2,40 +2,48 @@ const { Router } = require("express");
 const db = require("../config/db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { validate, validateParam } = require("../middleware/validate");
+const { parsePagination, paginatedQuery, buildWhere } = require("../lib/query-builder");
 const { trigger } = require("../lib/novu");
 
 const router = Router();
 
+const ALLOWED_SORTS = { name: "full_name", role: "role", status: "status", created_at: "created_at" };
+
 // GET / — list admins (users with role admin or moderator), optional ?search and ?status
 router.get("/", requireAuth, requireRole("admin"), async (req, res, next) => {
   try {
-    const { search, status, limit = 50, offset = 0 } = req.query;
+    const { page, limit, offset } = parsePagination(req.query);
+    const sort = ALLOWED_SORTS[req.query.sort] || "full_name";
+    const order = req.query.order === "asc" ? "ASC" : "DESC";
 
-    let query =
-      "SELECT id, clerk_user_id, email, full_name, role, status, account_number, created_at FROM users WHERE role IN ('admin', 'moderator') AND deleted_at IS NULL";
+    const conditions = [`role IN ('admin', 'moderator')`, `deleted_at IS NULL`];
     const params = [];
+    let idx = 1;
 
-    if (status) {
-      params.push(status);
-      query += ` AND status = $${params.length}`;
+    if (req.query.status) {
+      conditions.push(`status = $${idx++}`);
+      params.push(req.query.status);
     }
 
-    if (search) {
-      params.push(`%${search}%`);
-      query += ` AND (full_name ILIKE $${params.length} OR email ILIKE $${params.length})`;
+    if (req.query.search) {
+      conditions.push(`(full_name ILIKE $${idx} OR email ILIKE $${idx})`);
+      params.push(`%${req.query.search}%`);
+      idx++;
     }
 
-    params.push(Number(limit));
-    query += ` LIMIT $${params.length}`;
+    const where = buildWhere(conditions);
+    const cols = `id, clerk_user_id, email, full_name, role, status, account_number, created_at`;
 
-    params.push(Number(offset));
-    query += ` OFFSET $${params.length}`;
-
-    const { rows } = await db.query(query, params);
-    res.json(rows);
-  } catch (err) {
-    next(err);
-  }
+    const result = await paginatedQuery(
+      db,
+      `SELECT ${cols} FROM users ${where} ORDER BY ${sort} ${order} LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...params, limit, offset],
+      `SELECT COUNT(*) FROM users ${where}`,
+      params,
+      page, limit
+    );
+    res.json(result);
+  } catch (err) { next(err); }
 });
 
 // POST / — create admin (creates user with admin/moderator role)
@@ -72,40 +80,6 @@ router.post("/", requireAuth, requireRole("admin"), validate("createAdmin"), asy
     }
 
     res.status(201).json(admin);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// PUT /:id — update admin
-router.put("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), validate("updateAdmin"), async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { email, full_name, role, status, account_number } = req.validated;
-
-    if (role && !["admin", "moderator"].includes(role)) {
-      return res
-        .status(400)
-        .json({ error: "Role must be 'admin' or 'moderator'" });
-    }
-
-    const { rows } = await db.query(
-      `UPDATE users
-       SET email = COALESCE($1, email),
-           full_name = COALESCE($2, full_name),
-           role = COALESCE($3, role),
-           status = COALESCE($4, status),
-           account_number = COALESCE($5, account_number)
-       WHERE id = $6 AND role IN ('admin', 'moderator')
-       RETURNING id, clerk_user_id, email, full_name, role, status, account_number, created_at`,
-      [email, full_name, role, status, account_number, id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Admin not found" });
-    }
-
-    res.json(rows[0]);
   } catch (err) {
     next(err);
   }
@@ -171,7 +145,7 @@ router.post("/:id/restore", requireAuth, requireRole("admin"), validateParam("uu
 router.patch("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), validate("patchAdmin"), async (req, res, next) => {
   try {
     const data = req.validated;
-    const fields = ["full_name", "email", "role", "status", "account_number", "password"];
+    const fields = ["full_name", "email", "role", "status", "account_number"];
     const setClauses = [];
     const params = [];
     let idx = 1;
@@ -195,6 +169,18 @@ router.patch("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), v
 
     if (rows.length === 0) {
       return res.status(404).json({ error: "Admin not found" });
+    }
+
+    if (data.role) {
+      await db.query(
+        "INSERT INTO audit_log (action, entity_type, entity_id, actor_id, details) VALUES ($1, $2, $3, $4, $5)",
+        ["role_change", "user", req.params.id, req.auth?.userId, JSON.stringify({ new_role: data.role })]
+      );
+    } else {
+      await db.query(
+        "INSERT INTO audit_log (action, entity_type, entity_id, actor_id, details) VALUES ($1, $2, $3, $4, $5)",
+        ["update", "user", req.params.id, req.auth?.userId, JSON.stringify(data)]
+      );
     }
 
     res.json(rows[0]);

@@ -3,52 +3,42 @@ const router = express.Router();
 const db = require("../config/db");
 const { requireAuth, requireRole, attachUser, requireOwnership } = require("../middleware/auth");
 const { validate, validateParam } = require("../middleware/validate");
+const { parsePagination, paginatedQuery, buildFilters, buildWhere } = require("../lib/query-builder");
 const { trigger } = require("../lib/novu");
+
+const ALLOWED_SORTS = { name: "u.full_name", date: "p.date_joined", status: "u.status" };
 
 // GET / — list patients with optional filters
 router.get("/", requireAuth, async (req, res, next) => {
   try {
-    const { status, search, limit = 50, offset = 0 } = req.query;
-    const params = [];
-    const conditions = [];
-    let paramIdx = 1;
+    const { page, limit, offset } = parsePagination(req.query);
+    const sort = ALLOWED_SORTS[req.query.sort] || "u.full_name";
+    const order = req.query.order === "asc" ? "ASC" : "DESC";
 
-    // Always exclude soft-deleted users
-    conditions.push(`u.deleted_at IS NULL`);
+    const { conditions, params, nextIdx } = buildFilters({
+      status: req.query.status,
+      search: req.query.search,
+      searchFields: ["u.full_name", "u.email", "p.location"],
+      statusColumn: "u.status",
+    });
 
-    if (status) {
-      conditions.push(`u.status = $${paramIdx++}`);
-      params.push(status);
-    }
+    // Always exclude soft-deleted
+    conditions.unshift("u.deleted_at IS NULL");
 
-    if (search) {
-      conditions.push(
-        `(u.full_name ILIKE $${paramIdx} OR u.email ILIKE $${paramIdx} OR p.location ILIKE $${paramIdx})`
-      );
-      params.push(`%${search}%`);
-      paramIdx++;
-    }
+    const where = buildWhere(conditions);
+    const from = `FROM patients p JOIN users u ON p.id = u.id ${where}`;
+    const cols = `u.id, u.full_name AS name, u.email, u.status AS state, p.location, COALESCE(u.avatar_url, p.avatar) AS avatar, p.date_joined AS date`;
 
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-    params.push(Number(limit), Number(offset));
-
-    const { rows } = await db.query(
-      `SELECT u.id, u.full_name AS name, u.email, u.status AS state,
-              p.location, p.avatar, p.date_joined AS date,
-              COALESCE(u.avatar_url, p.avatar) AS avatar
-       FROM patients p
-       JOIN users u ON p.id = u.id
-       ${where}
-       ORDER BY u.full_name
-       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
-      params
+    const result = await paginatedQuery(
+      db,
+      `SELECT ${cols} ${from} ORDER BY ${sort} ${order} LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
+      [...params, limit, offset],
+      `SELECT COUNT(*) ${from}`,
+      params,
+      page, limit
     );
-
-    res.json(rows);
-  } catch (err) {
-    next(err);
-  }
+    res.json(result);
+  } catch (err) { next(err); }
 });
 
 // GET /:id — single patient (join users + patients)
@@ -77,8 +67,11 @@ router.get("/:id", requireAuth, validateParam("uuid"), attachUser, requireOwners
   }
 });
 
-// GET /:id/medical — list medical info for a patient
-router.get("/:id/medical", requireAuth, validateParam("uuid"), async (req, res, next) => {
+// GET /:id/medical — list medical info for a patient (owner or admin)
+router.get("/:id/medical", requireAuth, validateParam("uuid"), attachUser, requireOwnership(async (req) => {
+  const { rows } = await db.query("SELECT id FROM patients WHERE id = $1", [req.params.id]);
+  return rows[0]?.id;
+}), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT id, category, items FROM patient_medical WHERE patient_id = $1 ORDER BY id`,
@@ -90,8 +83,11 @@ router.get("/:id/medical", requireAuth, validateParam("uuid"), async (req, res, 
   }
 });
 
-// GET /:id/transactions — list transactions for a patient
-router.get("/:id/transactions", requireAuth, validateParam("uuid"), async (req, res, next) => {
+// GET /:id/transactions — list transactions for a patient (owner or admin)
+router.get("/:id/transactions", requireAuth, validateParam("uuid"), attachUser, requireOwnership(async (req) => {
+  const { rows } = await db.query("SELECT id FROM patients WHERE id = $1", [req.params.id]);
+  return rows[0]?.id;
+}), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT t.id, u.full_name AS provider_name, t.date, t.service, t.amount, t.status
@@ -148,58 +144,6 @@ router.post("/", requireAuth, requireRole("admin"), validate("createPatient"), a
       }
 
       res.status(201).json({ ...user, ...patientResult.rows[0] });
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
-    }
-  } catch (err) {
-    next(err);
-  }
-});
-
-// PUT /:id — update patient (admin only)
-router.put("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), validate("updatePatient"), async (req, res, next) => {
-  try {
-    const {
-      full_name, email, status, account_number,
-      location, avatar, date_joined,
-    } = req.validated;
-
-    const client = await db.connect();
-    try {
-      await client.query("BEGIN");
-
-      const userResult = await client.query(
-        `UPDATE users
-         SET full_name = COALESCE($1, full_name),
-             email = COALESCE($2, email),
-             status = COALESCE($3, status),
-             account_number = COALESCE($4, account_number)
-         WHERE id = $5
-         RETURNING *`,
-        [full_name, email, status, account_number, req.params.id]
-      );
-
-      if (userResult.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({ error: "Patient not found" });
-      }
-
-      const patientResult = await client.query(
-        `UPDATE patients
-         SET location = COALESCE($1, location),
-             avatar = COALESCE($2, avatar),
-             date_joined = COALESCE($3, date_joined)
-         WHERE id = $4
-         RETURNING *`,
-        [location, avatar, date_joined, req.params.id]
-      );
-
-      await client.query("COMMIT");
-
-      res.json({ ...userResult.rows[0], ...patientResult.rows[0] });
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;
@@ -278,6 +222,39 @@ router.patch("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), v
   } catch (err) {
     next(err);
   }
+});
+
+// DELETE /:id — soft-delete patient (admin only)
+router.delete("/:id", requireAuth, requireRole("admin"), validateParam("uuid"), async (req, res, next) => {
+  try {
+    const { rows } = await db.query(
+      "UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id",
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Patient not found" });
+    await db.query(
+      "INSERT INTO audit_log (action, entity_type, entity_id, actor_id, details) VALUES ($1, $2, $3, $4, $5)",
+      ["soft_delete", "user", req.params.id, req.auth.userId, JSON.stringify({ type: "patient" })]
+    );
+    res.status(204).send();
+  } catch (err) { next(err); }
+});
+
+// POST /:id/restore — restore soft-deleted patient (admin only)
+router.post("/:id/restore", requireAuth, requireRole("admin"), validateParam("uuid"), async (req, res, next) => {
+  try {
+    const { rows } = await db.query(
+      `UPDATE users SET deleted_at = NULL WHERE id = $1 AND deleted_at IS NOT NULL
+       RETURNING id, email, full_name, role, status, created_at`,
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Patient not found or not deleted" });
+    await db.query(
+      "INSERT INTO audit_log (action, entity_type, entity_id, actor_id, details) VALUES ($1, $2, $3, $4, $5)",
+      ["restore", "user", req.params.id, req.auth.userId, JSON.stringify({ type: "patient" })]
+    );
+    res.json(rows[0]);
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

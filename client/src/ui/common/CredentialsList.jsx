@@ -21,10 +21,22 @@ export default function CredentialsList({ items, showLabel = "View Credentials",
                 <span className="text-sm text-gray-700">{cred.label}</span>
                 {cred.required && <span className="text-xs text-error-600">Required</span>}
               </div>
-              <button className="flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-800 transition-colors duration-150">
-                <Download size={14} />
-                Download
-              </button>
+              {cred.url ? (
+                <a
+                  href={cred.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-800 transition-colors duration-150"
+                >
+                  <Download size={14} />
+                  Download
+                </a>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <Download size={14} />
+                  No file attached
+                </span>
+              )}
             </div>
           ))}
         </div>

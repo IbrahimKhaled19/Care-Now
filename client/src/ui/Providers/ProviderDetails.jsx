@@ -54,7 +54,7 @@ function ProviderDetails() {
     const newStatus = provider.status === "active" ? "suspended" : "active";
     setToggling(true);
     try {
-      await api.put(`/providers/${id}`, { status: newStatus });
+      await api.patch(`/providers/${id}`, { status: newStatus });
       toast.success(
         `Provider ${newStatus === "suspended" ? "suspended" : "activated"} successfully.`,
       );

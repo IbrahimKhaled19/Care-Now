@@ -14,8 +14,11 @@ export function useProfile() {
   return useContext(UserContext);
 }
 
-// Convenience hook
-export function useIsAdmin() {
+// Convenience hook: true for admin or moderator roles
+export function useHasAdminAccess() {
   const profile = useProfile();
   return profile?.role === "admin" || profile?.role === "moderator";
 }
+
+// Backward-compatible alias
+export const useIsAdmin = useHasAdminAccess;

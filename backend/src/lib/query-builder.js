@@ -59,7 +59,7 @@ async function paginatedQuery(db, dataQuery, dataParams, countQuery, countParams
  * @param {number} [options.paramStart=1] - Starting parameter index for SQL placeholders
  * @returns {{ conditions: string[], params: any[], nextIdx: number }}
  */
-function buildFilters({ status, search, searchFields, roleFilter, paramStart = 1 }) {
+function buildFilters({ status, search, searchFields, roleFilter, paramStart = 1, statusColumn = "status" }) {
   const conditions = [];
   const params = [];
   let idx = paramStart;
@@ -70,7 +70,7 @@ function buildFilters({ status, search, searchFields, roleFilter, paramStart = 1
   }
 
   if (status) {
-    conditions.push(`status = $${idx++}`);
+    conditions.push(`${statusColumn} = $${idx++}`);
     params.push(status);
   }
 

@@ -3,59 +3,44 @@ const router = express.Router();
 const db = require("../config/db");
 const { requireAuth, requireRole, attachUser, requireOwnership } = require("../middleware/auth");
 const { validate, validateParam } = require("../middleware/validate");
+const { parsePagination, paginatedQuery, buildFilters, buildWhere } = require("../lib/query-builder");
 const { trigger } = require("../lib/novu");
+
+const ALLOWED_SORTS = { date: "r.date", created_at: "r.created_at", status: "r.status", service: "r.service" };
 
 // GET / — list requests with optional filters (role-based)
 router.get("/", requireAuth, attachUser, async (req, res, next) => {
   try {
-    const { status, search, limit = 50, offset = 0 } = req.query;
-    const params = [];
-    const conditions = [];
-    let paramIdx = 1;
+    const { page, limit, offset } = parsePagination(req.query);
+    const sort = ALLOWED_SORTS[req.query.sort] || "r.created_at";
+    const order = req.query.order === "asc" ? "ASC" : "DESC";
 
-    // Role-based filtering
-    if (req.user?.role === "provider") {
-      conditions.push(`r.provider_id = $${paramIdx++}`);
-      params.push(req.user.id);
-    } else if (req.user?.role === "patient") {
-      conditions.push(`r.patient_id = $${paramIdx++}`);
-      params.push(req.user.id);
-    }
+    let roleFilter = null;
+    if (req.user?.role === "provider") roleFilter = { column: "r.provider_id", value: req.user.id };
+    else if (req.user?.role === "patient") roleFilter = { column: "r.patient_id", value: req.user.id };
 
-    if (status) {
-      conditions.push(`r.status = $${paramIdx++}`);
-      params.push(status);
-    }
+    const { conditions, params, nextIdx } = buildFilters({
+      status: req.query.status,
+      search: req.query.search,
+      searchFields: ["pu.full_name", "pru.full_name", "r.service"],
+      roleFilter,
+      statusColumn: "r.status",
+    });
 
-    if (search) {
-      conditions.push(
-        `(pu.full_name ILIKE $${paramIdx} OR pru.full_name ILIKE $${paramIdx} OR r.service ILIKE $${paramIdx})`
-      );
-      params.push(`%${search}%`);
-      paramIdx++;
-    }
+    const where = buildWhere(conditions);
+    const from = `FROM requests r LEFT JOIN users pu ON r.patient_id = pu.id AND pu.deleted_at IS NULL LEFT JOIN users pru ON r.provider_id = pru.id AND pru.deleted_at IS NULL ${where}`;
+    const cols = `r.id, r.service, r.status, r.date, r.created_at, pu.full_name AS patient_name, pru.full_name AS provider_name`;
 
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-    params.push(Number(limit), Number(offset));
-
-    const { rows } = await db.query(
-      `SELECT r.id, r.service, r.status, r.date, r.created_at,
-              pu.full_name AS patient_name,
-              pru.full_name AS provider_name
-       FROM requests r
-       LEFT JOIN users pu ON r.patient_id = pu.id AND pu.deleted_at IS NULL
-       LEFT JOIN users pru ON r.provider_id = pru.id AND pru.deleted_at IS NULL
-       ${where}
-       ORDER BY r.created_at DESC
-       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
-      params
+    const result = await paginatedQuery(
+      db,
+      `SELECT ${cols} ${from} ORDER BY ${sort} ${order} LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
+      [...params, limit, offset],
+      `SELECT COUNT(*) ${from}`,
+      params,
+      page, limit
     );
-
-    res.json(rows);
-  } catch (err) {
-    next(err);
-  }
+    res.json(result);
+  } catch (err) { next(err); }
 });
 
 // GET /:id — single request
@@ -132,52 +117,13 @@ router.post("/", requireAuth, requireRole("admin"), validate("createRequest"), a
       }
     }
 
-    res.status(201).json(request);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// PUT /:id — update request (admin only)
-router.put("/:id", requireAuth, requireRole("admin"), validateParam("integer"), validate("updateRequest"), async (req, res, next) => {
-  try {
-    const { patient_id, provider_id, service, status, date } = req.validated;
-
-    const { rows } = await db.query(
-      `UPDATE requests
-       SET patient_id = COALESCE($1, patient_id),
-           provider_id = COALESCE($2, provider_id),
-           service = COALESCE($3, service),
-           status = COALESCE($4, status),
-           date = COALESCE($5, date)
-       WHERE id = $6
-       RETURNING *`,
-      [patient_id, provider_id, service, status, date, req.params.id]
+    // Audit log
+    await db.query(
+      "INSERT INTO audit_log (action, entity_type, entity_id, actor_id, details) VALUES ($1, $2, $3, $4, $5)",
+      ["create", "request", String(request.id), req.auth?.userId, JSON.stringify({ service, status: request.status, patient_id, provider_id })]
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Request not found" });
-    }
-
-    const updated = rows[0];
-
-    // Notify provider on status change
-    if (status && updated.provider_id) {
-      const provider = await db.query(
-        "SELECT clerk_user_id, full_name FROM users WHERE id = $1",
-        [updated.provider_id]
-      );
-      if (provider.rows.length > 0) {
-        trigger("request-status-changed", provider.rows[0].clerk_user_id, {
-          providerName: provider.rows[0].full_name,
-          service: updated.service,
-          status,
-          requestId: updated.id,
-        });
-      }
-    }
-
-    res.json(updated);
+    res.status(201).json(request);
   } catch (err) {
     next(err);
   }
@@ -194,6 +140,11 @@ router.delete("/:id", requireAuth, requireRole("admin"), validateParam("integer"
     if (rowCount === 0) {
       return res.status(404).json({ error: "Request not found" });
     }
+
+    await db.query(
+      "INSERT INTO audit_log (action, entity_type, entity_id, actor_id, details) VALUES ($1, $2, $3, $4, $5)",
+      ["delete", "request", req.params.id, req.auth?.userId, "{}"]
+    );
 
     res.status(204).send();
   } catch (err) {
@@ -230,6 +181,11 @@ router.patch("/:id", requireAuth, requireRole("admin"), validateParam("integer")
     if (rows.length === 0) {
       return res.status(404).json({ error: "Request not found" });
     }
+
+    await db.query(
+      "INSERT INTO audit_log (action, entity_type, entity_id, actor_id, details) VALUES ($1, $2, $3, $4, $5)",
+      ["update", "request", req.params.id, req.auth?.userId, JSON.stringify(data)]
+    );
 
     res.json(rows[0]);
   } catch (err) {

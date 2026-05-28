@@ -61,16 +61,6 @@ export const FooterContent = {
   footerConditions: ["Privacy Policy", "Terms & Conditions", "Contact Us"],
 };
 
-export const navLinks = [
-  { route: "/admins", title: "Admins Management" },
-  { route: "/dashboard", title: "Dashboard" },
-  { route: "/requests", title: "Requests" },
-  { route: "/providers", title: "Providers" },
-  { route: "/patients", title: "Patients" },
-  { route: "/billing", title: "Billing" },
-  { route: "/report", title: "Report" },
-];
-
 export const reportTypes = [
   {
     id: "daily-operations",

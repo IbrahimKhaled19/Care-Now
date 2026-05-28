@@ -77,8 +77,8 @@ export function useWithdrawals(filters = {}) {
   return useListQuery("withdrawals", "/withdrawals", filters);
 }
 
-export function useWallets() {
-  return useListQuery("wallets", "/wallets");
+export function useWallets(filters = {}) {
+  return useListQuery("wallets", "/wallets", filters);
 }
 
 export function useAdmins(filters = {}) {

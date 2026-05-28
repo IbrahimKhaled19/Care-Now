@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import PatientsSearchBar from "../ui/Patients/PatientSearchBar";
 import PatientsTable from "../ui/Patients/PatientTable";
 import BaseHeader from "../ui/common/BaseHeader";
@@ -10,8 +12,19 @@ import { UserPlus, X } from "lucide-react";
 import { useIsAdmin } from "../context/UserContext";
 
 function Patient() {
-  const [statusFilter, setStatusFilter] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || null);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+
+  const updateUrl = (updates) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(updates)) {
+        if (v) next.set(k, v); else next.delete(k);
+      }
+      return next;
+    });
+  };
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
@@ -19,7 +32,7 @@ function Patient() {
     location: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const queryClient = useQueryClient();
   const toast = useToast();
   const isAdmin = useIsAdmin();
 
@@ -40,7 +53,7 @@ function Patient() {
       toast.success("Patient created successfully.");
       setShowForm(false);
       setFormData({ full_name: "", email: "", location: "" });
-      setRefreshKey((k) => k + 1);
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
     } catch (err) {
       toast.error(err.message || "Failed to create patient.");
     } finally {
@@ -74,10 +87,11 @@ function Patient() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="patient-full_name" className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name *
               </label>
               <input
+                id="patient-full_name"
                 name="full_name"
                 value={formData.full_name}
                 onChange={handleChange}
@@ -87,10 +101,11 @@ function Patient() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="patient-email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email *
               </label>
               <input
+                id="patient-email"
                 name="email"
                 type="email"
                 value={formData.email}
@@ -101,10 +116,11 @@ function Patient() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="patient-location" className="block text-sm font-medium text-gray-700 mb-1">
                 Location
               </label>
               <input
+                id="patient-location"
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
@@ -123,13 +139,12 @@ function Patient() {
 
       <div className="mt-5">
         <PatientsSearchBar
-          onSearch={setSearchQuery}
-          onFilterChange={setStatusFilter}
+          onSearch={(v) => { setSearchQuery(v); updateUrl({ search: v }); }}
+          onFilterChange={(v) => { setStatusFilter(v); updateUrl({ status: v }); }}
         />
       </div>
       <div className="mt-5">
         <PatientsTable
-          key={refreshKey}
           filters={{ status: statusFilter, search: searchQuery }}
         />
       </div>

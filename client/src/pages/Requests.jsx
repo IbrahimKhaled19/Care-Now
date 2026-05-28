@@ -3,6 +3,7 @@ import RequestsTable from "../ui/Requests/RequestsTable";
 import { useRequests } from "../hooks/useApi";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import BaseHeader from "../ui/common/BaseHeader";
 import PageContainer from "../ui/common/PageContainer";
@@ -20,23 +21,36 @@ const STATUS_FILTER = {
 };
 
 const Requests = () => {
-  const [activeRequestTab, setActiveRequestTab] = useState("waiting");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeRequestTab, setActiveRequestTab] = useState(searchParams.get("tab") || "waiting");
+
+  const updateUrl = (updates) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(updates)) {
+        if (v) next.set(k, v); else next.delete(k);
+      }
+      return next;
+    });
+  };
   const [showForm, setShowForm] = useState(false);
   const { data: allRequests, refetch } = useRequests({});
 
   // Lazy fetch: only load patients/providers when form is open
-  const { data: patients } = useQuery({
+  const { data: patientsRes } = useQuery({
     queryKey: ["patients-list"],
     queryFn: () => api.get("/patients?limit=100"),
     enabled: showForm,
     staleTime: 60_000,
   });
-  const { data: providers } = useQuery({
+  const { data: providersRes } = useQuery({
     queryKey: ["providers-list"],
     queryFn: () => api.get("/providers?limit=100"),
     enabled: showForm,
     staleTime: 60_000,
   });
+  const patients = patientsRes?.data || patientsRes || [];
+  const providers = providersRes?.data || providersRes || [];
   const toast = useToast();
   const isAdmin = useIsAdmin();
   const [submitting, setSubmitting] = useState(false);
@@ -119,8 +133,9 @@ const Requests = () => {
           </div>
           <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Patient</label>
+              <label htmlFor="request-patient" className="block text-xs font-medium text-gray-600 mb-1">Patient</label>
               <select
+                id="request-patient"
                 required
                 value={form.patient_id}
                 onChange={(e) => setForm((f) => ({ ...f, patient_id: e.target.value }))}
@@ -133,8 +148,9 @@ const Requests = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Provider</label>
+              <label htmlFor="request-provider" className="block text-xs font-medium text-gray-600 mb-1">Provider</label>
               <select
+                id="request-provider"
                 value={form.provider_id}
                 onChange={(e) => setForm((f) => ({ ...f, provider_id: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
@@ -146,8 +162,9 @@ const Requests = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Service</label>
+              <label htmlFor="request-service" className="block text-xs font-medium text-gray-600 mb-1">Service</label>
               <input
+                id="request-service"
                 type="text"
                 required
                 value={form.service}
@@ -157,9 +174,11 @@ const Requests = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+              <label htmlFor="request-date" className="block text-xs font-medium text-gray-600 mb-1">Date</label>
               <input
+                id="request-date"
                 type="date"
+                min={new Date().toISOString().split("T")[0]}
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -178,7 +197,7 @@ const Requests = () => {
         <TabNavigation
           tabs={tabs}
           activeTab={activeRequestTab}
-          onTabChange={setActiveRequestTab}
+          onTabChange={(v) => { setActiveRequestTab(v); updateUrl({ tab: v }); }}
         />
       </div>
 

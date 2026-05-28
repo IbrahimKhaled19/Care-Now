@@ -33,14 +33,20 @@ async function migrate() {
     const sql = fs.readFileSync(filePath, "utf-8");
 
     console.log(`Running migration: ${file}`);
+    const client = await pool.connect();
     try {
-      await pool.query(sql);
-      await pool.query("INSERT INTO _migrations (name) VALUES ($1)", [file]);
+      await client.query("BEGIN");
+      await client.query(sql);
+      await client.query("INSERT INTO _migrations (name) VALUES ($1)", [file]);
+      await client.query("COMMIT");
       console.log(`  Done: ${file}`);
     } catch (err) {
+      await client.query("ROLLBACK");
       console.error(`  Failed: ${file}`);
       console.error(err.message);
       process.exit(1);
+    } finally {
+      client.release();
     }
   }
 

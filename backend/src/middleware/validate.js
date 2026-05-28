@@ -113,7 +113,6 @@ const schemas = {
     role: z.enum(["admin", "moderator"]),
     status: z.enum(["active", "suspended"]).optional(),
     account_number: z.string().optional(),
-    password: z.string().optional(),
   }),
 
   updateAdmin: z.object({
@@ -122,7 +121,6 @@ const schemas = {
     role: z.enum(["admin", "moderator"]).optional(),
     status: z.enum(["active", "suspended"]).optional(),
     account_number: z.string().optional(),
-    password: z.string().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
   }),
@@ -171,7 +169,6 @@ const schemas = {
     role: z.enum(["admin", "moderator"]).nullable().optional(),
     status: z.enum(["active", "suspended"]).nullable().optional(),
     account_number: z.string().nullable().optional(),
-    password: z.string().nullable().optional(),
   }).refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
   }),
@@ -246,5 +243,29 @@ function validateParam(schemaName) {
     next();
   };
 }
+
+// ============================================================
+// Wallet schemas
+// ============================================================
+
+schemas.createWallet = z.object({
+  id: z.string().min(1),
+  user_id: z.string().uuid(),
+  balance: z.number().min(0).optional(),
+  on_hold: z.number().min(0).optional(),
+  earnings: z.number().min(0).optional(),
+  type: z.enum(["payment", "withdraw"]),
+  status: z.enum(["active", "on_hold", "pending", "frozen"]).optional(),
+});
+
+schemas.patchWallet = z.object({
+  balance: z.number().min(0).nullable().optional(),
+  on_hold: z.number().min(0).nullable().optional(),
+  earnings: z.number().min(0).nullable().optional(),
+  type: z.enum(["payment", "withdraw"]).nullable().optional(),
+  status: z.enum(["active", "on_hold", "pending", "frozen"]).nullable().optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: "At least one field must be provided",
+});
 
 module.exports = { validate, schemas, validateParam };

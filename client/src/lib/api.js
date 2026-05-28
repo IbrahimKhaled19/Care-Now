@@ -44,4 +44,14 @@ export const api = {
   patch: (path, body) =>
     request(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: (path) => request(path, { method: "DELETE" }),
+  download: async (path) => {
+    const headers = {};
+    if (getTokenFn) {
+      const token = await getTokenFn();
+      if (token) headers.Authorization = `Bearer ${token}`;
+    }
+    const res = await fetch(`${API_URL}${path}`, { headers });
+    if (!res.ok) throw new Error(`Download failed (${res.status})`);
+    return res.blob();
+  },
 };

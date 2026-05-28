@@ -20,6 +20,8 @@ const withdrawalsRouter = require("./routes/withdrawals");
 const walletsRouter = require("./routes/wallets");
 const adminsRouter = require("./routes/admins");
 const analyticsRouter = require("./routes/analytics");
+const exportRouter = require("./routes/export");
+const searchRouter = require("./routes/search");
 const clerkWebhookRouter = require("./routes/clerk-webhook");
 
 const app = express();
@@ -77,8 +79,23 @@ app.use(clerkMiddleware());
 // --- Routes ---
 
 // Health check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/api/health", async (req, res) => {
+  try {
+    await require("./config/db").query("SELECT 1");
+    res.json({
+      status: "ok",
+      db: "connected",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    res
+      .status(503)
+      .json({
+        status: "error",
+        db: "disconnected",
+        timestamp: new Date().toISOString(),
+      });
+  }
 });
 
 // Clerk webhooks (raw body needed for signature verification)
@@ -88,7 +105,11 @@ app.use(
   clerkWebhookRouter,
 );
 
-// All other routes (auth enforced per-route)
+// Export and search routes (must be before entity routes to avoid /:id conflicts)
+app.use("/api", exportRouter);
+app.use("/api/search", searchRouter);
+
+// Entity routes (auth enforced per-route)
 app.use("/api/users", usersRouter);
 app.use("/api/requests", requestsRouter);
 app.use("/api/providers", providersRouter);

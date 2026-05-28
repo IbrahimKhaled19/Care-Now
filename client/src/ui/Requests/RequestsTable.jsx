@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import BaseTable from "../common/BaseTable";
 import StatusBadge from "../common/StatusBadge";
-import ConfirmationDialog from "../Admins Management/ConfirmationDialog";
+import ConfirmationDialog from "../AdminsManagement/ConfirmationDialog";
 import { useRequests } from "../../hooks/useApi";
 import { formatDate } from "../../lib/formatDate";
 import { api } from "../../lib/api";
 import { useToast } from "../common/Toast";
+
+const EMPTY = [];
+const ITEMS_PER_PAGE = 10;
 
 const columns = [
   { key: "id", label: "Request ID" },
@@ -19,42 +22,33 @@ const columns = [
   { key: "actions", label: "" },
 ];
 
-// API returns lowercase enum: waiting, in_progress, completed, canceled
-const NEXT_STATUS = {
-  waiting: "in_progress",
-  in_progress: "completed",
-};
-
+const NEXT_STATUS = { waiting: "in_progress", in_progress: "completed" };
 const CANCELABLE = new Set(["waiting", "in_progress"]);
 
 export const RequestsTable = ({ filters = {} }) => {
-  const { data: requests, loading, error, refetch } = useRequests(filters);
-  const toast = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
-  const ITEMS_PER_PAGE = 10;
-  const data = requests || [];
-  const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+  const toast = useToast();
 
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-sm text-red-500 mb-3">Failed to load requests</p>
-        <button onClick={refetch} className="text-sm text-teal-600 underline cursor-pointer">Retry</button>
-      </div>
-    );
-  }
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [data]);
+  const {
+    data: requests,
+    meta,
+    loading,
+    error,
+    refetch,
+  } = useRequests({
+    ...filters,
+    page: currentPage,
+    limit: ITEMS_PER_PAGE,
+  });
+  const data = requests || EMPTY;
 
   const handleStatusChange = useCallback(
     async (id, newStatus) => {
       try {
         setUpdatingId(id);
-        await api.put(`/requests/${id}`, { status: newStatus });
+        await api.patch(`/requests/${id}`, { status: newStatus });
         toast.success(
           `Request ${newStatus === "in_progress" ? "started" : newStatus === "completed" ? "completed" : "canceled"}`,
         );
@@ -89,7 +83,11 @@ export const RequestsTable = ({ filters = {} }) => {
       return (
         <tr
           key={request.id}
-          className="hover:bg-gray-50 transition-colors duration-100"
+          className="hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-inset"
+          tabIndex={0}
+          role="link"
+          aria-label={`Request #${request.id}`}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.location.href = `/requests/${request.id}`; } }}
         >
           <td className="px-5 py-3.5 whitespace-nowrap text-sm font-medium text-gray-800">
             #{request.id}
@@ -150,6 +148,19 @@ export const RequestsTable = ({ filters = {} }) => {
     [handleStatusChange, updatingId],
   );
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-red-500 mb-3">Failed to load requests</p>
+        <button
+          onClick={refetch}
+          className="text-sm text-teal-600 underline cursor-pointer"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
   return (
     <>
       <BaseTable
@@ -167,10 +178,11 @@ export const RequestsTable = ({ filters = {} }) => {
         }
         colCount={columns.length}
         data={data}
+        meta={meta}
         rowRenderer={renderRow}
         currentPage={currentPage}
-        totalPages={totalPages}
         onPageChange={setCurrentPage}
+        pageSize={ITEMS_PER_PAGE}
         isLoading={loading}
       />
       <ConfirmationDialog

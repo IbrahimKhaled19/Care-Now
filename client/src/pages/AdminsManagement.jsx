@@ -7,8 +7,8 @@ import SearchFilterBar from "../ui/common/SearchFilterBar";
 import PageContainer from "../ui/common/PageContainer";
 import Button from "../ui/common/Button";
 import { useToast } from "../ui/common/Toast";
-import AdminForm from "../ui/Admins Management/AdminForm";
-import ConfirmationDialog from "../ui/Admins Management/ConfirmationDialog";
+import AdminForm from "../ui/AdminsManagement/AdminForm";
+import ConfirmationDialog from "../ui/AdminsManagement/ConfirmationDialog";
 import { Trash2, Pencil, UserPlus } from "lucide-react";
 import { formatDate } from "../lib/formatDate";
 import { useAdmins } from "../hooks/useApi";
@@ -27,7 +27,10 @@ const columns = [
 const headerRow = (
   <tr>
     {columns.map((col) => (
-      <th key={col.accessor} className="px-5 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase text-left">
+      <th
+        key={col.accessor}
+        className="px-5 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase text-left"
+      >
         {col.header}
       </th>
     ))}
@@ -57,7 +60,14 @@ const AdminsManagement = () => {
     reset,
     formState: { errors },
   } = useForm({
-    defaultValues: { fullName: "", email: "", password: "", accountNumber: "", role: "", state: "Active" },
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      accountNumber: "",
+      role: "",
+      state: "Active",
+    },
   });
 
   const onSubmit = async (data) => {
@@ -71,7 +81,7 @@ const AdminsManagement = () => {
           account_number: data.accountNumber,
         };
         if (data.password) body.password = data.password;
-        await api.put(`/admins/${editingAdmin.id}`, body);
+        await api.patch(`/admins/${editingAdmin.id}`, body);
         toast.success(`${data.fullName} updated successfully.`);
       } else {
         const body = {
@@ -114,7 +124,8 @@ const AdminsManagement = () => {
   };
 
   const confirmDelete = async () => {
-    const deletedName = (admins || []).find((a) => a.id === adminToDelete)?.full_name || "Admin";
+    const deletedName =
+      (admins || []).find((a) => a.id === adminToDelete)?.full_name || "Admin";
     try {
       await api.delete(`/admins/${adminToDelete}`);
       toast.success(`${deletedName} removed.`);
@@ -141,17 +152,30 @@ const AdminsManagement = () => {
   const pageSize = 5;
   const totalPages = Math.max(1, Math.ceil(adminsList.length / pageSize));
 
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, statusFilter]);
-  useEffect(() => { if (currentPage > totalPages) setCurrentPage(totalPages); }, [totalPages, currentPage]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
 
   const renderRow = (admin, index) => (
-    <tr key={admin.id || index} className="hover:bg-gray-50 transition-colors duration-100">
-      <td className="px-5 py-3.5 text-sm font-medium text-gray-800">{admin.id}</td>
+    <tr
+      key={admin.id || index}
+      className="hover:bg-gray-50 transition-colors duration-100"
+    >
+      <td className="px-5 py-3.5 text-sm font-medium text-gray-800">
+        {admin.id}
+      </td>
       <td className="px-5 py-3.5 text-sm text-gray-600">{admin.full_name}</td>
       <td className="px-5 py-3.5 text-sm text-gray-600">{admin.email}</td>
       <td className="px-5 py-3.5 text-sm text-gray-600">{admin.role}</td>
-      <td className="px-5 py-3.5"><StatusBadge status={admin.status} /></td>
-      <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(admin.created_at)}</td>
+      <td className="px-5 py-3.5">
+        <StatusBadge status={admin.status} />
+      </td>
+      <td className="px-5 py-3.5 text-sm text-gray-600">
+        {formatDate(admin.created_at)}
+      </td>
       <td className="px-5 py-3.5">
         <div className="flex items-center gap-2">
           <button
@@ -220,12 +244,23 @@ const AdminsManagement = () => {
           pageSize={pageSize}
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={(p) => setCurrentPage(Math.max(1, Math.min(totalPages, p)))}
+          onPageChange={(p) =>
+            setCurrentPage(Math.max(1, Math.min(totalPages, p)))
+          }
           showPagination={true}
           isLoading={loading}
-          emptyMessage={searchQuery || statusFilter ? "No admins match your filters." : "No admins yet."}
-          emptyActionLabel={searchQuery || statusFilter ? "Clear filters" : undefined}
-          onEmptyAction={() => { setSearchQuery(""); setStatusFilter(null); }}
+          emptyMessage={
+            searchQuery || statusFilter
+              ? "No admins match your filters."
+              : "No admins yet."
+          }
+          emptyActionLabel={
+            searchQuery || statusFilter ? "Clear filters" : undefined
+          }
+          onEmptyAction={() => {
+            setSearchQuery("");
+            setStatusFilter(null);
+          }}
         />
       </div>
 

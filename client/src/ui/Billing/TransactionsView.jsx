@@ -8,6 +8,8 @@ import { useTransactions } from "../../hooks/useApi";
 import { formatDate } from "../../lib/formatDate";
 import { exportCsv } from "../../lib/exportCsv";
 
+const EMPTY = [];
+const ITEMS_PER_PAGE = 10;
 const columns = ["ID", "Date", "Patient", "Provider", "Service", "Amount", "Status"];
 
 const header = (
@@ -19,11 +21,11 @@ const header = (
 );
 
 const renderRow = (tx) => (
-  <tr key={tx.id} className="hover:bg-gray-50 transition-colors duration-100">
+  <tr key={tx.id} className="hover:bg-gray-50 transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-inset" tabIndex={0} role="row" aria-label={`Transaction ${tx.id}`}>
     <td className="px-5 py-3.5 text-sm font-medium text-gray-800">{tx.id}</td>
     <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(tx.date)}</td>
-    <td className="px-5 py-3.5 text-sm text-gray-600">{tx.patient_name || tx.patient || "—"}</td>
-    <td className="px-5 py-3.5 text-sm text-gray-600">{tx.provider_name || tx.provider || "—"}</td>
+    <td className="px-5 py-3.5 text-sm text-gray-600">{tx.patient_name || "—"}</td>
+    <td className="px-5 py-3.5 text-sm text-gray-600">{tx.provider_name || "—"}</td>
     <td className="px-5 py-3.5 text-sm text-gray-600">{tx.service}</td>
     <td className="px-5 py-3.5 text-sm font-medium text-gray-800">${parseFloat(tx.amount).toFixed(2)}</td>
     <td className="px-5 py-3.5"><StatusBadge status={tx.status} /></td>
@@ -33,16 +35,19 @@ const renderRow = (tx) => (
 function TransactionsView() {
   const [statusFilter, setStatusFilter] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const filters = statusFilter ? { status: statusFilter } : {};
-  const { data: transactions, loading, error, refetch } = useTransactions(filters);
 
-  const rows = transactions || [];
+  const { data: transactions, meta, loading, error, refetch } = useTransactions({
+    ...(statusFilter ? { status: statusFilter } : {}),
+    page: currentPage,
+    limit: ITEMS_PER_PAGE,
+  });
+  const rows = transactions || EMPTY;
 
   const handleExport = () => {
     exportCsv(
       "transactions.csv",
-      ["ID", "Date", "Patient", "Provider", "Service", "Amount", "Status"],
-      rows.map((tx) => [tx.id, formatDate(tx.date), tx.patient_name || tx.patient || "", tx.provider_name || tx.provider || "", tx.service, `$${parseFloat(tx.amount).toFixed(2)}`, tx.status])
+      columns,
+      rows.map((tx) => [tx.id, formatDate(tx.date), tx.patient_name || "", tx.provider_name || "", tx.service, `$${parseFloat(tx.amount).toFixed(2)}`, tx.status])
     );
   };
 
@@ -58,31 +63,25 @@ function TransactionsView() {
   return (
     <div>
       <div className="mb-4">
-        <SearchFilterBar
-          filterOptions={["completed", "pending", "canceled"]}
-          statusFilter={statusFilter}
-          onFilterChange={setStatusFilter}
-        />
+        <SearchFilterBar filterOptions={["completed", "pending", "canceled"]} statusFilter={statusFilter} onFilterChange={(v) => { setStatusFilter(v); setCurrentPage(1); }} />
       </div>
-
       <BaseTable
         header={header}
         colCount={columns.length}
         data={rows}
+        meta={meta}
         currentPage={currentPage}
-        totalPages={1}
         onPageChange={setCurrentPage}
+        pageSize={ITEMS_PER_PAGE}
         rowRenderer={renderRow}
         emptyMessage="No transactions found."
         emptyActionLabel={statusFilter ? "Clear filter" : undefined}
-        onEmptyAction={() => setStatusFilter(null)}
+        onEmptyAction={() => { setStatusFilter(null); setCurrentPage(1); }}
         isLoading={loading}
       />
-
       <div className="mt-6 flex justify-end">
         <Button variant="outline" onClick={handleExport} disabled={rows.length === 0}>
-          <Download size={16} className="mr-2" />
-          Export
+          <Download size={16} className="mr-2" /> Export
         </Button>
       </div>
     </div>
