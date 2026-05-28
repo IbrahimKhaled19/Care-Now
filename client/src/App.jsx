@@ -12,37 +12,7 @@ import Login from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./pages/AppLayout";
-import { dark, neobrutalism } from "@clerk/ui/themes";
-
-// const clerkDark = {
-//   elements: {
-//     rootBox: "w-full",
-//     card: "bg-[#222a2a] rounded-xl border border-[#3a5454] shadow-none",
-//     headerTitle: "text-[#e0eded]",
-//     headerSubtitle: "text-[#a8c5c5]",
-//     formButtonPrimary: "bg-teal-600 hover:bg-teal-700 text-white",
-//     footerActionLink: "text-teal-400 hover:text-teal-300",
-//     formFieldLabel: "text-[#a8c5c5]",
-//     formFieldInput: "bg-[#2a3333] border-[#3a5454] text-[#e0eded]",
-//     identityPreviewText: "text-[#e0eded]",
-//     identityPreviewEditButton: "text-teal-400",
-//     dividerLine: "bg-[#3a5454]",
-//     dividerText: "text-[#5f8585]",
-//     socialButtonsBlockButton: "bg-[#2a3333] border-[#3a5454] text-[#e0eded]",
-//     footerActionText: "text-[#a8c5c5]",
-//   },
-// };
-
-// const clerkLight = {
-//   elements: {
-//     rootBox: "w-full",
-//     card: "bg-white rounded-xl border border-gray-100 shadow-none",
-//     headerTitle: "text-gray-800",
-//     headerSubtitle: "text-gray-500",
-//     formButtonPrimary: "bg-teal-600 hover:bg-teal-700 text-white",
-//     footerActionLink: "text-teal-600 hover:text-teal-700",
-//   },
-// };
+import { dark } from "@clerk/ui/themes";
 
 // Lazy-loaded pages
 const Analytics = lazy(() => import("./pages/Analytics"));
