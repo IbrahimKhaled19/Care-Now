@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useAnalyticsStats } from "../../hooks/useApi";
+import { useAnimatedCounter, formatAnimatedValue } from "../../hooks/useAnimatedCounter";
 import Skeleton from "../common/Skeleton";
 
 function TrendBadge({ trend, change, invertTrend }) {
@@ -15,6 +16,32 @@ function TrendBadge({ trend, change, invertTrend }) {
     >
       <Icon size={13} />
       {change}
+    </span>
+  );
+}
+
+// Extract numeric value from formatted strings like "1,234", "85%", "12min"
+function parseNumeric(str) {
+  if (str == null) return 0;
+  const num = parseFloat(String(str).replace(/[^0-9.]/g, ""));
+  return isNaN(num) ? 0 : num;
+}
+
+function detectFormat(str) {
+  if (typeof str !== "string") return "number";
+  if (str.includes("%")) return "percent";
+  if (str.includes("min")) return "time";
+  return "number";
+}
+
+function AnimatedStatValue({ value, className }) {
+  const numericValue = parseNumeric(value);
+  const format = detectFormat(value);
+  const animated = useAnimatedCounter(numericValue, { duration: 900 });
+
+  return (
+    <span className={className}>
+      {formatAnimatedValue(animated, format)}
     </span>
   );
 }
@@ -56,22 +83,23 @@ function DashboardStatistics({ dateRange }) {
   };
 
   const secondaryStats = [
-    { title: "Active Providers", value: stats?.activeProviders?.value?.toString() || "0", change: stats?.activeProviders?.change || "+0%", trend: "up" },
-    { title: "Completion Rate", value: stats?.completionRate?.value || "0%", change: stats?.completionRate?.change || "+0%", trend: "up" },
-    { title: "Avg Response Time", value: stats?.avgResponseTime?.value || "N/A", change: stats?.avgResponseTime?.change || "-", trend: "down", invertTrend: true },
+    { title: "Active Providers", value: stats?.activeProviders?.value?.toString() || "0", rawValue: stats?.activeProviders?.value, change: stats?.activeProviders?.change || "+0%", trend: "up" },
+    { title: "Completion Rate", value: stats?.completionRate?.value || "0%", rawValue: stats?.completionRate?.value, change: stats?.completionRate?.change || "+0%", trend: "up" },
+    { title: "Avg Response Time", value: stats?.avgResponseTime?.value || "N/A", rawValue: stats?.avgResponseTime?.value, change: stats?.avgResponseTime?.change || "-", trend: "down", invertTrend: true },
   ];
 
   return (
     <div className="mb-8">
       {/* Hero metric */}
-      <div className="bg-teal-50 border border-teal-100 rounded-xl p-6 mb-4 animate-fadeIn">
+      <div className="bg-teal-50 border border-teal-100 rounded-xl p-6 mb-4 reveal-stagger">
         <p className="text-xs font-medium text-teal-700 uppercase tracking-wider mb-2">
           {heroStat.title}
         </p>
         <div className="flex items-baseline gap-4">
-          <span className="text-4xl font-bold text-gray-800">
-            {heroStat.value}
-          </span>
+          <AnimatedStatValue
+            value={stats?.totalRequests?.value}
+            className="text-4xl font-bold text-gray-800"
+          />
           <TrendBadge
             trend={heroStat.trend}
             change={heroStat.change}
@@ -85,16 +113,17 @@ function DashboardStatistics({ dateRange }) {
         {secondaryStats.map((stat, idx) => (
           <div
             key={stat.title}
-            className="px-4 py-3 animate-fadeIn"
-            style={{ animationDelay: `${80 + idx * 60}ms` }}
+            className="px-4 py-3 reveal-stagger"
+            style={{ animationDelay: `${120 + idx * 80}ms` }}
           >
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">
               {stat.title}
             </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold text-gray-800">
-                {stat.value}
-              </span>
+              <AnimatedStatValue
+                value={stat.rawValue}
+                className="text-xl font-bold text-gray-800"
+              />
               <TrendBadge
                 trend={stat.trend}
                 change={stat.change}

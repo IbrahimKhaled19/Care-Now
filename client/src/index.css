@@ -279,6 +279,32 @@ html {
   fill: var(--text-muted) !important;
 }
 
+/* Staggered reveal for dashboard cards */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reveal-stagger {
+  animation: reveal-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Animated counter flash */
+@keyframes counter-pulse {
+  0%   { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.counter-animate {
+  animation: counter-pulse 300ms ease-out;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -286,4 +312,5 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
 }

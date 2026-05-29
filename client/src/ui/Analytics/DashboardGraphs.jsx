@@ -12,9 +12,9 @@ import Card from "../common/Card";
 import Skeleton from "../common/Skeleton";
 import { useRequestsOverTime, useRevenueByService, useTopProviders, useStatusDistribution, useAnalyticsStats } from "../../hooks/useApi";
 
-function ChartCard({ title, className, children }) {
+function ChartCard({ title, className, children, delay = 0 }) {
   return (
-    <Card className={className} padding={false}>
+    <Card className={`${className} reveal-stagger`} padding={false} style={delay ? { animationDelay: `${delay}ms` } : undefined}>
       <div className="p-6 pb-0">
         <h3 className="text-sm font-semibold text-gray-700 mb-4">{title}</h3>
       </div>
@@ -59,7 +59,7 @@ function DashboardGraphs({ dateRange }) {
 
       {/* Default visible charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <ChartCard title="Request Volume & Trends" className="lg:col-span-2">
+        <ChartCard title="Request Volume & Trends" className="lg:col-span-2" delay={100}>
           {loadingRequests ? (
             <Skeleton className="h-[320px] w-full" />
           ) : errorRequests ? (
@@ -69,7 +69,7 @@ function DashboardGraphs({ dateRange }) {
           )}
         </ChartCard>
 
-        <ChartCard title="Revenue by Service">
+        <ChartCard title="Revenue by Service" delay={200}>
           {loadingRevenue ? (
             <Skeleton className="h-[260px] w-full" />
           ) : errorRevenue ? (
@@ -79,7 +79,7 @@ function DashboardGraphs({ dateRange }) {
           )}
         </ChartCard>
 
-        <ChartCard title="Patient Satisfaction">
+        <ChartCard title="Patient Satisfaction" delay={300}>
           <PatientSatisfactionLevel satisfaction={stats?.patientSatisfaction?.value || 0} />
         </ChartCard>
       </div>
@@ -109,15 +109,15 @@ function DashboardGraphs({ dateRange }) {
             className="overflow-hidden"
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
-              <ChartCard title="Service Type Distribution">
+              <ChartCard title="Service Type Distribution" delay={0}>
                 <PieCharts data={pieData.length > 0 ? pieData : undefined} />
               </ChartCard>
 
-              <ChartCard title="Requests Breakdown">
+              <ChartCard title="Requests Breakdown" delay={100}>
                 <RequestBarsChart data={breakdownData.length > 0 ? breakdownData : undefined} />
               </ChartCard>
 
-              <ChartCard title="Top Performing Providers" className="lg:col-span-2">
+              <ChartCard title="Top Performing Providers" className="lg:col-span-2" delay={200}>
                 {loadingProviders ? (
                   <Skeleton className="h-48 w-full" />
                 ) : (
@@ -125,7 +125,7 @@ function DashboardGraphs({ dateRange }) {
                 )}
               </ChartCard>
 
-              <ChartCard title="Service Coverage" className="lg:col-span-2">
+              <ChartCard title="Service Coverage" className="lg:col-span-2" delay={300}>
                 <DashboardMap />
               </ChartCard>
             </div>
