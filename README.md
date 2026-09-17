@@ -110,18 +110,21 @@ Frontend runs on `http://localhost:5173` by default.
 
 ## Screenshots
 
-> Existing UI assets from the project:
-
 ### Landing / Home
 
-![Landing Page](client/public/assets/landing_page/hero.png)
+![Landing Page](docs/images/screenshots/home-hero.png)
 
-### Login / Auth Related
+### Authentication
 
-![Forget Password](client/public/assets/landing_page/Forget_Password.png)
-![Verification Code](client/public/assets/landing_page/Verification_Code.png)
+![Forget Password](docs/images/screenshots/forget-password.png)
+![Verification Code](docs/images/screenshots/verification-code.png)
 
-### User Roles
+### Dashboard Pages
 
-![Provider View](client/public/provider.jpg)
-![Patient View](client/public/patient.jpg)
+![Provider Page](docs/images/screenshots/provider-page.png)
+![Patient Page](docs/images/screenshots/patient-page.png)
+
+### Role Previews
+
+![Provider Role](docs/images/screenshots/provider-role.jpg)
+![Patient Role](docs/images/screenshots/patient-role.jpg)
